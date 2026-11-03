@@ -1,6 +1,7 @@
 /*
  * Dot map: OpenLayers + OpenFreeMap basemap + share-encoded dot tiles.
- * Exposes window.DotMap.create(target, pageData, tileset, options) -> { setColors(hexList) }.
+ * Exposes window.DotMap.create(target, pageData, tileset, options)
+ *   -> { map, fit, setColors(hexList), setPage(pageData), onSelect(fn(slug)) }.
  */
 (function () {
   "use strict";
@@ -244,21 +245,98 @@
     ];
   }
 
-  /* ---------- county outline ---------- */
+  /* ---------- current outline ---------- */
 
-  function outlineLayer(boundary) {
-    var features = new ol.format.GeoJSON().readFeatures(
-      { type: "Feature", geometry: boundary, properties: {} },
+  function readGeometry(geometry) {
+    return new ol.format.GeoJSON().readFeatures(
+      { type: "Feature", geometry: geometry, properties: {} },
       { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }
     );
+  }
+
+  function outlineLayer(boundary) {
     return new ol.layer.Vector({
-      source: new ol.source.Vector({ features: features }),
-      zIndex: 3,
+      source: new ol.source.Vector({ features: readGeometry(boundary) }),
+      zIndex: 3.5,
       style: [
         new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.85)", width: 4.5 }) }),
         new ol.style.Style({ stroke: new ol.style.Stroke({ color: "#312e81", width: 2 }) }),
       ],
     });
+  }
+
+  /* ---------- clickable counties ---------- */
+
+  // Transparent fill so the whole county area responds to the pointer.
+  var COUNTY_HIT = new ol.style.Style({ fill: new ol.style.Fill({ color: "rgba(0,0,0,0)" }) });
+  var COUNTY_HOVER = new ol.style.Style({
+    fill: new ol.style.Fill({ color: "rgba(49,46,129,0.08)" }),
+    stroke: new ol.style.Stroke({ color: "rgba(49,46,129,0.75)", width: 1.5 }),
+  });
+
+  function countyPicker(map, url, getCurrent, onSelect) {
+    var fmt = new Intl.NumberFormat("en-US");
+    var hovered = null;
+    var source = new ol.source.Vector({
+      url: url,
+      format: new ol.format.GeoJSON({ dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }),
+    });
+    var layer = new ol.layer.Vector({
+      source: source,
+      zIndex: 3,
+      style: function (feature) {
+        if (feature.get("slug") === getCurrent()) return null; // not selectable
+        return feature === hovered ? COUNTY_HOVER : COUNTY_HIT;
+      },
+    });
+    map.addLayer(layer);
+
+    var tip = document.createElement("div");
+    tip.className = "county-tip";
+    tip.hidden = true;
+    var overlay = new ol.Overlay({ element: tip, positioning: "bottom-center", offset: [0, -14], stopEvent: false });
+    map.addOverlay(overlay);
+
+    function countyAt(pixel) {
+      return map.forEachFeatureAtPixel(pixel, function (f) { return f; }, {
+        layerFilter: function (l) { return l === layer; },
+      }) || null;
+    }
+
+    function setHover(feature, coordinate) {
+      if (feature !== hovered) {
+        hovered = feature;
+        layer.changed();
+        map.getTargetElement().style.cursor = feature ? "pointer" : "";
+        if (feature) {
+          tip.innerHTML = "<strong></strong><span></span>";
+          tip.querySelector("strong").textContent = feature.get("name");
+          tip.querySelector("span").textContent = fmt.format(feature.get("people")) + " people";
+        }
+        tip.hidden = !feature;
+      }
+      if (feature) overlay.setPosition(coordinate);
+    }
+
+    map.on("pointermove", function (evt) {
+      if (evt.dragging) return;
+      var touch = evt.originalEvent && evt.originalEvent.pointerType === "touch";
+      setHover(touch ? null : countyAt(evt.pixel), evt.coordinate);
+    });
+    map.getViewport().addEventListener("mouseleave", function () { setHover(null); });
+
+    map.on("singleclick", function (evt) {
+      var feature = countyAt(evt.pixel);
+      setHover(null);
+      if (feature) onSelect(feature.get("slug"));
+    });
+
+    return {
+      refresh: function () {
+        setHover(null);
+        layer.changed();
+      },
+    };
   }
 
   /* ---------- map ---------- */
@@ -267,10 +345,12 @@
     var cfg = window.DOTMAP_CONFIG;
     var palette = cfg.groups.map(function (g) { return hexToRgb(g.color); });
     var dots = dotLayer(cfg.tiles, tileset, function () { return palette; });
+    var outline = outlineLayer(page.boundary);
+    var selectHandler = null;
 
     var map = new ol.Map({
       target: target,
-      layers: basemapLayers(cfg.basemap).concat([dots, outlineLayer(page.boundary)]),
+      layers: basemapLayers(cfg.basemap).concat([dots, outline]),
       view: new ol.View({
         minZoom: Math.max(3, tileset.minzoom - 1),
         maxZoom: tileset.maxzoom + (cfg.zoomPastTiles == null ? 1 : cfg.zoomPastTiles),
@@ -278,10 +358,16 @@
       controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } }),
     });
 
-    function fit() {
+    var picker = page.counties
+      ? countyPicker(map, "data/" + page.counties,
+          function () { return page.slug; },
+          function (slug) { if (selectHandler) selectHandler(slug); })
+      : null;
+
+    function fit(duration) {
       var extent = ol.proj.transformExtent(page.bbox, "EPSG:4326", "EPSG:3857");
       var pad = (options && options.padding && options.padding()) || [40, 40, 40, 40];
-      map.getView().fit(extent, { padding: pad, duration: 0 });
+      map.getView().fit(extent, { padding: pad, duration: duration || 0 });
     }
     fit();
 
@@ -292,6 +378,16 @@
         palette = hexList.map(hexToRgb);
         dots.getSource().refresh();
       },
+      // Show another place without reloading the map.
+      setPage: function (next) {
+        page = next;
+        var src = outline.getSource();
+        src.clear();
+        src.addFeatures(readGeometry(page.boundary));
+        if (picker) picker.refresh();
+        fit(600);
+      },
+      onSelect: function (fn) { selectHandler = fn; },
     };
   }
 

@@ -33,6 +33,10 @@ California takes about 1 minute for dots and 2 minutes for tiles on an
 | Render tiles that store each pixel's group shares, in parallel | `pipeline/render_tiles.py` | `site/tiles/`, `site/tiles.pmtiles`, `site/data/tileset.json` |
 | Write outlines, totals, and HTML pages | `pipeline/build_site.py` | `site/data/*.json`, `site/*.html` |
 
+On any page, hover over a county to see its name and population, and click it
+to switch the page to that county in place (the URL and back button follow
+along). The clickable outlines come from `site/data/counties-<state>.json`.
+
 Tiles hold group shares and density, not colors, so the page applies any
 palette exactly, including blends. Colors, labels, the optional color
 picker, and the tile source (folder or PMTiles) live in

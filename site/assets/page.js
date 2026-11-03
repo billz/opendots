@@ -72,21 +72,31 @@
     document.getElementById("diversity").textContent = pct(diversity);
   }
 
-  function setupPicker(map, colors) {
+  /* ---------- color picker ---------- */
+
+  var colors = currentColors();
+  var dotmap = null;
+
+  function updateColors(next) {
+    colors = next;
+    applySwatchColors(colors);
+    if (dotmap) dotmap.setColors(colors);
+  }
+
+  function setupPicker() {
     if (!cfg.colorPicker || !window.Huebee) return;
     document.body.classList.add("can-pick");
     var reset = document.getElementById("reset-colors");
     reset.hidden = false;
+    reset.addEventListener("click", function () {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      updateColors(cfg.groups.map(function (g) { return g.color; }));
+    });
+  }
 
-    function update(newColors) {
-      colors = newColors;
-      var saved = {};
-      cfg.groups.forEach(function (g, i) { saved[g.id] = colors[i]; });
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); } catch (e) {}
-      applySwatchColors(colors);
-      map.setColors(colors);
-    }
-
+  // Swatches are rebuilt with the table, so bind pickers after each render.
+  function bindSwatches() {
+    if (!cfg.colorPicker || !window.Huebee) return;
     document.querySelectorAll("#groups .swatch").forEach(function (sw) {
       var i = cfg.groups.findIndex(function (g) { return g.id === sw.dataset.group; });
       sw.setAttribute("role", "button");
@@ -96,30 +106,113 @@
       hb.on("change", function (color) {
         var next = colors.slice();
         next[i] = color;
-        update(next);
+        var saved = {};
+        cfg.groups.forEach(function (g, j) { saved[g.id] = next[j]; });
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); } catch (e) {}
+        updateColors(next);
       });
-    });
-
-    reset.addEventListener("click", function () {
-      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-      colors = cfg.groups.map(function (g) { return g.color; });
-      applySwatchColors(colors);
-      map.setColors(colors);
     });
   }
 
+  /* ---------- showing a place ---------- */
+
+  function link(href, text) {
+    var a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    return a;
+  }
+
+  function renderNav(page) {
+    var nav = document.getElementById("crumbs");
+    nav.innerHTML = "";
+    nav.appendChild(page.parent
+      ? link(page.parent.slug + ".html", page.parent.name)
+      : link("index.html", "All places"));
+  }
+
+  function renderChildren(page) {
+    var box = document.getElementById("children");
+    box.innerHTML = "";
+    if (!page.children || !page.children.length) return;
+    var details = document.createElement("details");
+    details.className = "children";
+    var summary = document.createElement("summary");
+    summary.textContent = "Counties (" + page.children.length + ")";
+    var ul = document.createElement("ul");
+    page.children.forEach(function (c) {
+      var li = document.createElement("li");
+      var count = document.createElement("span");
+      count.textContent = fmt.format(c.people);
+      li.appendChild(link(c.slug + ".html", c.name));
+      li.appendChild(count);
+      ul.appendChild(li);
+    });
+    details.appendChild(summary);
+    details.appendChild(ul);
+    box.appendChild(details);
+  }
+
+  function renderPanel(page) {
+    var stats = renderTable(page, colors);
+    renderSummary(page, stats);
+    bindSwatches();
+  }
+
+  // Swap the whole page to another place, keeping the map.
+  function showPage(page) {
+    slug = page.slug;
+    document.body.dataset.slug = page.slug;
+    document.title = page.title + ": Race and Ethnicity Dot Map";
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.content = "A map of every person in " + page.fullName +
+        ", from the 2020 Census, one dot per person, colored by race and ethnicity.";
+    }
+    document.getElementById("title").textContent = page.title;
+    renderNav(page);
+    renderChildren(page);
+    renderPanel(page);
+    document.querySelector(".panel").scrollTop = 0;
+    dotmap.setPage(page);
+  }
+
+  /* ---------- loading ---------- */
+
+  var pageCache = new Map();
+
+  function getJson(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status + " for " + url);
+      return r.json();
+    });
+  }
+
+  function loadPage(s) {
+    if (!pageCache.has(s)) {
+      pageCache.set(s, getJson("data/" + s + ".json").catch(function (e) {
+        pageCache.delete(s);
+        throw e;
+      }));
+    }
+    return pageCache.get(s);
+  }
+
+  function goTo(s, push) {
+    if (s === slug) return;
+    loadPage(s)
+      .then(function (page) {
+        showPage(page);
+        if (push) history.pushState({ slug: s }, "", s + ".html");
+      })
+      .catch(function () { location.href = s + ".html"; });
+  }
+
   function start() {
-    var getJson = function (url) {
-      return fetch(url).then(function (r) {
-        if (!r.ok) throw new Error("HTTP " + r.status + " for " + url);
-        return r.json();
-      });
-    };
-    Promise.all([getJson("data/" + slug + ".json"), getJson("data/tileset.json")])
+    Promise.all([loadPage(slug), getJson("data/tileset.json")])
       .then(function (results) {
         var page = results[0], tileset = results[1];
-        var colors = currentColors();
-        var dotmap = DotMap.create("map", page, tileset, {
+        dotmap = DotMap.create("map", page, tileset, {
           padding: function () {
             if (isNarrow()) return [24, 24, 24, 24];
             var panel = document.querySelector(".panel");
@@ -130,9 +223,15 @@
           dotmap.setColors(colors);
         }
         window.dotmap = dotmap; // handy for debugging in the console
-        var stats = renderTable(page, colors);
-        renderSummary(page, stats);
-        setupPicker(dotmap, colors);
+        setupPicker();
+        renderPanel(page);
+
+        dotmap.onSelect(function (s) { goTo(s, true); });
+        history.replaceState({ slug: slug }, "", location.href);
+        window.addEventListener("popstate", function (e) {
+          var s = (e.state && e.state.slug) || location.pathname.split("/").pop().replace(/\.html$/, "");
+          if (s) goTo(s, false);
+        });
       })
       .catch(function (e) {
         document.getElementById("summary").textContent =

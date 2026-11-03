@@ -15,9 +15,9 @@
 
 <aside class="panel">
   <header>
-    <nav class="crumbs"><a href="california.html">California</a></nav>
+    <nav class="crumbs" id="crumbs"><a href="california.html">California</a></nav>
     <p class="eyebrow">2020 Census &middot; one dot per person</p>
-    <h1>Mono County, CA</h1>
+    <h1 id="title">Mono County, CA</h1>
     <p class="lede">Race and ethnicity</p>
   </header>
 
@@ -32,14 +32,14 @@
   </table>
   <button type="button" id="reset-colors" class="link-button" hidden>Reset colors</button>
 
-  <p id="summary" class="summary">Loading&hellip;</p>
+  <p id="summary" class="summary" aria-live="polite">Loading&hellip;</p>
 
   <div class="stat">
     <span class="stat-value" id="diversity">&ndash;</span>
     <span class="stat-label">Diversity index: the chance that two people picked at random belong to different groups on this map.</span>
   </div>
 
-  
+  <div id="children"></div>
 
   <details class="about">
     <summary>How this map is made</summary>

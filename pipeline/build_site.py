@@ -53,6 +53,7 @@ def total(counts):
 
 
 def write_page(template, data, title, full_name, nav_html, children_html):
+    data = {**data, "title": title, "fullName": full_name}
     (SITE / "data" / f"{data['slug']}.json").write_text(json.dumps(data, separators=(",", ":")))
     html = (template
             .replace("{{slug}}", data["slug"])
@@ -85,6 +86,10 @@ def main():
             slug = f"{slugify(county_name)}-{postal.lower()}"
             counties.append((cf, county_name, slug, geom))
 
+        # Clickable county layer shared by every page in the state
+        counties_file = f"counties-{postal.lower()}.json"
+        write_counties(counties_file, counties, counts)
+
         # State page
         geom = state_geoms[fips].simplify(0.002, preserve_topology=True)
         children = [{"name": n, "slug": s, "people": total(counts["counties"][cf])} for cf, n, s, _ in counties]
@@ -98,6 +103,7 @@ def main():
             "slug": state_slug, "kind": "state", "name": state_name, "state": state_name,
             "stateAbbr": postal, "fips": fips,
             "census2020": counts["state"], "bbox": focus_bbox(geom), "boundary": mapping(geom),
+            "counties": counties_file, "children": children,
         }, state_name, state_name, '<a href="index.html">All places</a>', children_html)
 
         # County pages
@@ -109,12 +115,29 @@ def main():
                 "stateAbbr": postal, "fips": fips + cf,
                 "parent": {"slug": state_slug, "name": state_name},
                 "census2020": counts["counties"][cf], "bbox": focus_bbox(geom), "boundary": mapping(geom),
+                "counties": counties_file,
             }, f"{county_name}, {postal}", f"{county_name}, {state_name}", nav, "")
 
         index_items.append((state_name, state_slug, total(counts["state"]), children))
         print(f"{state_name}: wrote 1 state page and {len(counties)} county pages")
 
     write_index(index_items)
+
+
+def write_counties(filename, counties, counts):
+    """All counties in a state as one GeoJSON file, for hover and click."""
+    features = [
+        {
+            "type": "Feature",
+            "properties": {"slug": slug, "name": name, "people": total(counts["counties"][cf])},
+            "geometry": mapping(geom.simplify(0.002, preserve_topology=True)),
+        }
+        for cf, name, slug, geom in counties
+    ]
+    text = json.dumps({"type": "FeatureCollection", "features": features}, separators=(",", ":"))
+    # Trim coordinates to ~100 m precision; the full float repr triples the file size.
+    text = re.sub(r"(-?\d+\.\d{3})\d+", r"\1", text)
+    (SITE / "data" / filename).write_text(text)
 
 
 def write_index(items):
