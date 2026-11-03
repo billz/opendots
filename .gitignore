@@ -1,0 +1,9 @@
+/.venv/
+/data/
+__pycache__/
+.DS_Store
+
+# Generated tiles: rebuild with `make tiles`. Too large/numerous for git
+# (tiles.pmtiles exceeds GitHub's 100 MB file limit); host them separately.
+site/tiles/
+site/tiles.pmtiles

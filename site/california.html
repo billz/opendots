@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>California: Race and Ethnicity Dot Map</title>
+<meta name="description" content="A map of every person in California, from the 2020 Census, one dot per person, colored by race and ethnicity.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/ol/ol.css">
+<link rel="stylesheet" href="vendor/huebee/huebee.min.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-slug="california">
+<div id="map" class="map" aria-label="Dot map of California"></div>
+
+<aside class="panel">
+  <header>
+    <nav class="crumbs"><a href="index.html">All places</a></nav>
+    <p class="eyebrow">2020 Census &middot; one dot per person</p>
+    <h1>California</h1>
+    <p class="lede">Race and ethnicity</p>
+  </header>
+
+  <table id="groups" class="groups">
+    <thead>
+      <tr><th scope="col">Group</th><th scope="col" class="num">People</th><th scope="col" class="share">Share</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr><th scope="row">Total</th><td class="num" id="total"></td><td></td></tr>
+    </tfoot>
+  </table>
+  <button type="button" id="reset-colors" class="link-button" hidden>Reset colors</button>
+
+  <p id="summary" class="summary">Loading&hellip;</p>
+
+  <div class="stat">
+    <span class="stat-value" id="diversity">&ndash;</span>
+    <span class="stat-label">Diversity index: the chance that two people picked at random belong to different groups on this map.</span>
+  </div>
+
+  <details class="children"><summary>Counties (58)</summary><ul><li><a href="alameda-county-ca.html">Alameda County</a> <span>1,682,353</span></li><li><a href="alpine-county-ca.html">Alpine County</a> <span>1,204</span></li><li><a href="amador-county-ca.html">Amador County</a> <span>40,474</span></li><li><a href="butte-county-ca.html">Butte County</a> <span>211,632</span></li><li><a href="calaveras-county-ca.html">Calaveras County</a> <span>45,292</span></li><li><a href="colusa-county-ca.html">Colusa County</a> <span>21,839</span></li><li><a href="contra-costa-county-ca.html">Contra Costa County</a> <span>1,165,927</span></li><li><a href="del-norte-county-ca.html">Del Norte County</a> <span>27,743</span></li><li><a href="el-dorado-county-ca.html">El Dorado County</a> <span>191,185</span></li><li><a href="fresno-county-ca.html">Fresno County</a> <span>1,008,654</span></li><li><a href="glenn-county-ca.html">Glenn County</a> <span>28,917</span></li><li><a href="humboldt-county-ca.html">Humboldt County</a> <span>136,463</span></li><li><a href="imperial-county-ca.html">Imperial County</a> <span>179,702</span></li><li><a href="inyo-county-ca.html">Inyo County</a> <span>19,016</span></li><li><a href="kern-county-ca.html">Kern County</a> <span>909,235</span></li><li><a href="kings-county-ca.html">Kings County</a> <span>152,486</span></li><li><a href="lake-county-ca.html">Lake County</a> <span>68,163</span></li><li><a href="lassen-county-ca.html">Lassen County</a> <span>32,730</span></li><li><a href="los-angeles-county-ca.html">Los Angeles County</a> <span>10,014,009</span></li><li><a href="madera-county-ca.html">Madera County</a> <span>156,255</span></li><li><a href="marin-county-ca.html">Marin County</a> <span>262,321</span></li><li><a href="mariposa-county-ca.html">Mariposa County</a> <span>17,131</span></li><li><a href="mendocino-county-ca.html">Mendocino County</a> <span>91,601</span></li><li><a href="merced-county-ca.html">Merced County</a> <span>281,202</span></li><li><a href="modoc-county-ca.html">Modoc County</a> <span>8,700</span></li><li><a href="mono-county-ca.html">Mono County</a> <span>13,195</span></li><li><a href="monterey-county-ca.html">Monterey County</a> <span>439,035</span></li><li><a href="napa-county-ca.html">Napa County</a> <span>138,019</span></li><li><a href="nevada-county-ca.html">Nevada County</a> <span>102,241</span></li><li><a href="orange-county-ca.html">Orange County</a> <span>3,186,989</span></li><li><a href="placer-county-ca.html">Placer County</a> <span>404,739</span></li><li><a href="plumas-county-ca.html">Plumas County</a> <span>19,790</span></li><li><a href="riverside-county-ca.html">Riverside County</a> <span>2,418,185</span></li><li><a href="sacramento-county-ca.html">Sacramento County</a> <span>1,585,055</span></li><li><a href="san-benito-county-ca.html">San Benito County</a> <span>64,209</span></li><li><a href="san-bernardino-county-ca.html">San Bernardino County</a> <span>2,181,654</span></li><li><a href="san-diego-county-ca.html">San Diego County</a> <span>3,298,634</span></li><li><a href="san-francisco-county-ca.html">San Francisco County</a> <span>873,965</span></li><li><a href="san-joaquin-county-ca.html">San Joaquin County</a> <span>779,233</span></li><li><a href="san-luis-obispo-county-ca.html">San Luis Obispo County</a> <span>282,424</span></li><li><a href="san-mateo-county-ca.html">San Mateo County</a> <span>764,442</span></li><li><a href="santa-barbara-county-ca.html">Santa Barbara County</a> <span>448,229</span></li><li><a href="santa-clara-county-ca.html">Santa Clara County</a> <span>1,936,259</span></li><li><a href="santa-cruz-county-ca.html">Santa Cruz County</a> <span>270,861</span></li><li><a href="shasta-county-ca.html">Shasta County</a> <span>182,155</span></li><li><a href="sierra-county-ca.html">Sierra County</a> <span>3,236</span></li><li><a href="siskiyou-county-ca.html">Siskiyou County</a> <span>44,076</span></li><li><a href="solano-county-ca.html">Solano County</a> <span>453,491</span></li><li><a href="sonoma-county-ca.html">Sonoma County</a> <span>488,863</span></li><li><a href="stanislaus-county-ca.html">Stanislaus County</a> <span>552,878</span></li><li><a href="sutter-county-ca.html">Sutter County</a> <span>99,633</span></li><li><a href="tehama-county-ca.html">Tehama County</a> <span>65,829</span></li><li><a href="trinity-county-ca.html">Trinity County</a> <span>16,112</span></li><li><a href="tulare-county-ca.html">Tulare County</a> <span>473,117</span></li><li><a href="tuolumne-county-ca.html">Tuolumne County</a> <span>55,620</span></li><li><a href="ventura-county-ca.html">Ventura County</a> <span>843,843</span></li><li><a href="yolo-county-ca.html">Yolo County</a> <span>216,403</span></li><li><a href="yuba-county-ca.html">Yuba County</a> <span>81,575</span></li></ul></details>
+
+  <details class="about">
+    <summary>How this map is made</summary>
+    <p>Each dot is one person counted in the 2020 Census. The Census reports how many people of each group live in every census block (often a single city block). We place each person's dot at a random point inside their block, so dots show where people live at the block level, not at real addresses.</p>
+    <p>Groups follow the Census question on Hispanic or Latino origin and race. "Hispanic or Latino" includes people of any race; every other group is non-Hispanic. "Native American, Pacific Islander, or other" combines American Indian and Alaska Native, Native Hawaiian and Other Pacific Islander, and Some Other Race.</p>
+    <p>Where dots overlap, the color is a blend of the groups in that spot, and denser areas appear more solid.</p>
+  </details>
+
+  <footer class="sources">
+    <p><strong>Sources:</strong> U.S. Census Bureau, <a href="https://www.census.gov/programs-surveys/decennial-census/about/rdo/summary-files.html">2020 Census Redistricting Data (P.L. 94-171)</a> and <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html">TIGER/Line block shapes</a>. Basemap: <a href="https://openfreemap.org">OpenFreeMap</a>, <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</p>
+  </footer>
+</aside>
+
+<script src="vendor/ol/ol.js"></script>
+<script src="vendor/pmtiles/pmtiles.js"></script>
+<script src="vendor/huebee/huebee.pkgd.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/map.js"></script>
+<script src="assets/page.js"></script>
+</body>
+</html>

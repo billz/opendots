@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plumas County, CA: Race and Ethnicity Dot Map</title>
+<meta name="description" content="A map of every person in Plumas County, California, from the 2020 Census, one dot per person, colored by race and ethnicity.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/ol/ol.css">
+<link rel="stylesheet" href="vendor/huebee/huebee.min.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-slug="plumas-county-ca">
+<div id="map" class="map" aria-label="Dot map of Plumas County, California"></div>
+
+<aside class="panel">
+  <header>
+    <nav class="crumbs"><a href="california.html">California</a></nav>
+    <p class="eyebrow">2020 Census &middot; one dot per person</p>
+    <h1>Plumas County, CA</h1>
+    <p class="lede">Race and ethnicity</p>
+  </header>
+
+  <table id="groups" class="groups">
+    <thead>
+      <tr><th scope="col">Group</th><th scope="col" class="num">People</th><th scope="col" class="share">Share</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr><th scope="row">Total</th><td class="num" id="total"></td><td></td></tr>
+    </tfoot>
+  </table>
+  <button type="button" id="reset-colors" class="link-button" hidden>Reset colors</button>
+
+  <p id="summary" class="summary">Loading&hellip;</p>
+
+  <div class="stat">
+    <span class="stat-value" id="diversity">&ndash;</span>
+    <span class="stat-label">Diversity index: the chance that two people picked at random belong to different groups on this map.</span>
+  </div>
+
+  
+
+  <details class="about">
+    <summary>How this map is made</summary>
+    <p>Each dot is one person counted in the 2020 Census. The Census reports how many people of each group live in every census block (often a single city block). We place each person's dot at a random point inside their block, so dots show where people live at the block level, not at real addresses.</p>
+    <p>Groups follow the Census question on Hispanic or Latino origin and race. "Hispanic or Latino" includes people of any race; every other group is non-Hispanic. "Native American, Pacific Islander, or other" combines American Indian and Alaska Native, Native Hawaiian and Other Pacific Islander, and Some Other Race.</p>
+    <p>Where dots overlap, the color is a blend of the groups in that spot, and denser areas appear more solid.</p>
+  </details>
+
+  <footer class="sources">
+    <p><strong>Sources:</strong> U.S. Census Bureau, <a href="https://www.census.gov/programs-surveys/decennial-census/about/rdo/summary-files.html">2020 Census Redistricting Data (P.L. 94-171)</a> and <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html">TIGER/Line block shapes</a>. Basemap: <a href="https://openfreemap.org">OpenFreeMap</a>, <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</p>
+  </footer>
+</aside>
+
+<script src="vendor/ol/ol.js"></script>
+<script src="vendor/pmtiles/pmtiles.js"></script>
+<script src="vendor/huebee/huebee.pkgd.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/map.js"></script>
+<script src="assets/page.js"></script>
+</body>
+</html>

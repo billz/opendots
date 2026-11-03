@@ -1,0 +1,27 @@
+"""Download the Census files for every state in config.STATES (skips existing)."""
+import subprocess
+
+from config import RAW, STATES
+
+CENSUS = "https://www2.census.gov"
+PL = CENSUS + "/programs-surveys/decennial/2020/data/01-Redistricting_File--PL_94-171/{folder}/{prefix}2020.pl.zip"
+BLOCKS = CENSUS + "/geo/tiger/TIGER2020/TABBLOCK20/tl_2020_{fips}_tabblock20.zip"
+
+
+def fetch(url, path):
+    if path.exists():
+        return
+    print(f"downloading {path.name}")
+    subprocess.run(["curl", "-sfL", "-o", str(path), url], check=True)
+
+
+def main():
+    RAW.mkdir(parents=True, exist_ok=True)
+    for fips, (prefix, name, _) in STATES.items():
+        folder = name.replace(" ", "_")
+        fetch(PL.format(folder=folder, prefix=prefix), RAW / f"{prefix}2020.pl.zip")
+        fetch(BLOCKS.format(fips=fips), RAW / f"tl_2020_{fips}_tabblock20.zip")
+
+
+if __name__ == "__main__":
+    main()

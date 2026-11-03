@@ -1,0 +1,5 @@
+numpy>=2
+shapely>=2
+pyshp>=2.3
+pillow>=10
+pmtiles>=3
