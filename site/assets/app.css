@@ -29,7 +29,7 @@ a { color: var(--accent); }
   position: absolute;
   top: calc(16px + env(safe-area-inset-top, 0px));
   left: 16px;
-  width: 400px;
+  width: 412px;
   max-height: calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   overflow: auto;
   padding: 22px 24px 18px;
@@ -268,3 +268,15 @@ body.index h2 span { font-size: 14px; font-weight: 400; color: var(--muted); mar
 .groups .delta.flat .arrow { font-size: 12px; vertical-align: 0; }
 
 .estimate-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+
+.groups .group-label { white-space: nowrap; }
+
+/* Fit one-line group names: slimmer share column and bar. */
+.groups .num { padding-right: 10px; }
+.groups .share { width: 80px; }
+.bar { width: 28px; margin-right: 6px; }
+
+@media (max-width: 400px) {
+  .groups .share { width: auto; }
+  .bar { display: none; }
+}

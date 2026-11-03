@@ -7,12 +7,12 @@
  */
 window.DOTMAP_CONFIG = {
   groups: [
-    { id: "hispanic",    label: "Hispanic or Latino",            color: "#e69f00" },
-    { id: "white",       label: "White",                         color: "#56b4e9" },
-    { id: "black",       label: "Black",                         color: "#009e73" },
-    { id: "asian",       label: "Asian",                         color: "#d55e00" },
-    { id: "multiracial", label: "Two or more races",             color: "#cc79a7" },
-    { id: "other",       label: "Native American, Pacific Islander, or other", color: "#8c6d31" },
+    { id: "hispanic",    label: "Hispanic or Latino",    color: "#e69f00" },
+    { id: "white",       label: "White",                 color: "#56b4e9" },
+    { id: "black",       label: "Black",                 color: "#009e73" },
+    { id: "asian",       label: "Asian",                 color: "#d55e00" },
+    { id: "multiracial", label: "Multiracial",           color: "#cc79a7" },
+    { id: "other",       label: "Native American/Other", color: "#8c6d31" },
   ],
 
   // Show a color picker on each legend swatch. Picks are saved per browser.
