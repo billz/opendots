@@ -1,5 +1,7 @@
 # Open dot map
 
+![preview](preview.jpg)
+
 A racial and ethnic dot map built entirely from open data and open-source
 parts: one dot per person from the 2020 Census, placed at random inside the
 census block where they were counted.
