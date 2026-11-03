@@ -12,6 +12,10 @@ STATES = {
     "06": ("ca", "California", "CA"),
 }
 
+# Census Bureau Population Estimates vintage for the "since 2020" figures
+# (county characteristics by race and Hispanic origin, July 1 of this year).
+PEP_VINTAGE = 2025
+
 # Group order is the order of channels in the tiles. Keep in sync with
 # site/assets/config.js.
 GROUPS = ["hispanic", "white", "black", "asian", "multiracial", "other"]

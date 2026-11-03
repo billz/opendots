@@ -66,6 +66,7 @@ S3 and point `tiles` in `site/assets/config.js` at its URL.
 
 - Code in this repository: MIT (see `LICENSE`).
 - Population: U.S. Census Bureau, 2020 Census Redistricting Data (P.L. 94-171), public domain.
+- Change since 2020: U.S. Census Bureau Population Estimates, county characteristics by race and Hispanic origin (Vintage 2025), public domain. Set `PEP_VINTAGE` in `pipeline/config.py` when a new vintage is released.
 - Block and county shapes: U.S. Census Bureau TIGER/Line and cartographic boundary files, public domain.
 - Basemap: [OpenFreeMap](https://openfreemap.org) vector tiles, [OpenMapTiles](https://openmaptiles.org) schema, data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) (ODbL; attribution required).
 - [OpenLayers](https://openlayers.org) (BSD 2-Clause), `site/vendor/ol/`.

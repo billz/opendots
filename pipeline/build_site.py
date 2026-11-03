@@ -1,6 +1,6 @@
 """Write page data and HTML for each state and county.
 
-Inputs:  data/work/counts/<fips>.json,
+Inputs:  data/work/counts/<fips>.json, data/raw/cc-est<vintage>-alldata-<fips>.csv,
          data/raw/cb_2020_us_state_500k.zip, data/raw/cb_2020_us_county_500k.zip
 Outputs: site/data/<slug>.json, site/<slug>.html (from site/templates/county.html),
          site/index.html
@@ -14,7 +14,13 @@ from html import escape
 import shapefile
 from shapely.geometry import mapping, shape
 
-from config import GROUPS, RAW, SITE, STATES, WORK
+from config import GROUPS, PEP_VINTAGE, RAW, SITE, STATES, WORK
+from estimates import page_estimates, read_estimates, state_estimates
+
+
+# Header line on every page: the headline figures are the latest estimates,
+# while the dots can only show the 2020 Census (no block-level estimates).
+EYEBROW = f"{PEP_VINTAGE} estimates &middot; dots from the 2020 Census"
 
 
 def slugify(text):
@@ -60,7 +66,8 @@ def write_page(template, data, title, full_name, nav_html, children_html):
             .replace("{{title}}", escape(title))
             .replace("{{name}}", escape(full_name))
             .replace("{{nav}}", nav_html)
-            .replace("{{children}}", children_html))
+            .replace("{{children}}", children_html)
+            .replace("{{eyebrow}}", EYEBROW))
     (SITE / f"{data['slug']}.html").write_text(html)
 
 
@@ -77,6 +84,7 @@ def main():
     index_items = []
     for fips, (_, state_name, postal) in STATES.items():
         counts = json.loads((WORK / "counts" / f"{fips}.json").read_text())
+        estimates = read_estimates(fips)
         state_slug = slugify(state_name)
 
         counties = []
@@ -104,6 +112,7 @@ def main():
             "stateAbbr": postal, "fips": fips,
             "census2020": counts["state"], "bbox": focus_bbox(geom), "boundary": mapping(geom),
             "counties": counties_file, "children": children,
+            "estimates": state_estimates(estimates),
         }, state_name, state_name, '<a href="index.html">All places</a>', children_html)
 
         # County pages
@@ -116,6 +125,7 @@ def main():
                 "parent": {"slug": state_slug, "name": state_name},
                 "census2020": counts["counties"][cf], "bbox": focus_bbox(geom), "boundary": mapping(geom),
                 "counties": counties_file,
+                "estimates": page_estimates(estimates[cf]),
             }, f"{county_name}, {postal}", f"{county_name}, {state_name}", nav, "")
 
         index_items.append((state_name, state_slug, total(counts["state"]), children))
@@ -159,7 +169,7 @@ def write_index(items):
 </head>
 <body class="index">
 <main>
-<p class="eyebrow">2020 Census &middot; one dot per person</p>
+<p class="eyebrow">{EYEBROW}</p>
 <h1>Race and ethnicity dot maps</h1>
 {''.join(sections)}
 </main>

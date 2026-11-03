@@ -24,17 +24,95 @@
     return window.matchMedia("(max-width: 760px)").matches;
   }
 
+  /* ---------- change since 2020 ---------- */
+
+  var MIN_BASE_FOR_PERCENT = 100; // below this, show the change in people
+
+  function shares(counts) {
+    var total = cfg.groups.reduce(function (s, g) { return s + counts[g.id]; }, 0) || 1;
+    var out = {};
+    cfg.groups.forEach(function (g) { out[g.id] = counts[g.id] / total; });
+    return out;
+  }
+
+  // One change figure: arrow + text, plus a plain-language tooltip.
+  function delta(kind, text, title) {
+    var span = document.createElement("span");
+    span.className = "delta " + kind;
+    span.title = title;
+    var arrow = document.createElement("span");
+    arrow.className = "arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = kind === "up" ? "▲" : kind === "down" ? "▼" : "–";
+    span.appendChild(arrow);
+    span.appendChild(document.createTextNode(text));
+    return span;
+  }
+
+  function countDelta(base, latest, year) {
+    var diff = latest - base;
+    var since = " since April 2020 (" + fmt.format(base) + " → " + fmt.format(latest) + " in " + year + ")";
+    if (base < MIN_BASE_FOR_PERCENT) {
+      if (diff === 0) return delta("flat", "no change", "No change" + since);
+      var people = fmt.format(Math.abs(diff)) + (Math.abs(diff) === 1 ? " person" : " people");
+      return delta(diff > 0 ? "up" : "down", (diff > 0 ? "+" : "−") + people, (diff > 0 ? "Up " : "Down ") + people + since);
+    }
+    var change = diff / base * 100;
+    if (Math.abs(change) < 0.5) return delta("flat", "little change", "Changed by less than 0.5%" + since);
+    var text = Math.abs(change).toFixed(1) + "%";
+    return delta(change > 0 ? "up" : "down", text, (change > 0 ? "Up " : "Down ") + text + since);
+  }
+
+  function shareDelta(before, after) {
+    var pts = (after - before) * 100;
+    var detail = " (" + pct(before) + " in 2020, " + pct(after) + " now)";
+    if (Math.abs(pts) < 0.1) return delta("flat", "share steady", "Share of the population barely changed" + detail);
+    var text = "share " + Math.abs(pts).toFixed(1) + " pts";
+    return delta(pts > 0 ? "up" : "down", text, "Share of the population " + (pts > 0 ? "rose " : "fell ") +
+      Math.abs(pts).toFixed(1) + " percentage points" + detail);
+  }
+
+  function changeRow(parts) {
+    var tr = document.createElement("tr");
+    tr.className = "change";
+    var td = document.createElement("td");
+    td.colSpan = 3;
+    parts.forEach(function (p) { td.appendChild(p); });
+    tr.appendChild(td);
+    return tr;
+  }
+
+  function baseLabel(n) {
+    var span = document.createElement("span");
+    span.className = "latest";
+    span.title = "April 2020 starting point of the Census Bureau estimates: the 2020 Census, " +
+      "with \u201cSome other race\u201d assigned to a specific race";
+    span.textContent = "2020: " + fmt.format(n);
+    return span;
+  }
+
+  function sumOf(counts) {
+    return cfg.groups.reduce(function (s, g) { return s + counts[g.id]; }, 0);
+  }
+
+  // Headline figures are the latest estimates when available, else the 2020 Census.
   function renderTable(page, colors) {
-    var counts = page.census2020;
-    var total = cfg.groups.reduce(function (s, g) { return s + counts[g.id]; }, 0);
+    var est = page.estimates;
+    var counts = est ? est.latest : page.census2020;
+    var total = sumOf(counts);
     var rows = cfg.groups
       .map(function (g, i) { return { g: g, i: i, n: counts[g.id], share: counts[g.id] / total }; })
       .sort(function (a, b) { return b.n - a.n; });
+    var baseShare = est && shares(est.base);
+    var latestShare = est && shares(est.latest);
+
+    document.getElementById("people-heading").textContent = est ? "People, " + est.year : "People, 2020";
 
     var tbody = document.querySelector("#groups tbody");
     tbody.innerHTML = "";
     rows.forEach(function (r) {
       var tr = document.createElement("tr");
+      tr.className = est ? "group has-change" : "group";
       tr.innerHTML =
         '<th scope="row"><span class="swatch" data-group="' + r.g.id + '"></span>' +
         '<span class="group-label"></span></th>' +
@@ -45,8 +123,27 @@
       bar.style.width = (r.share * 100).toFixed(2) + "%";
       bar.dataset.group = r.g.id;
       tbody.appendChild(tr);
+      if (est) {
+        var id = r.g.id;
+        tbody.appendChild(changeRow([
+          baseLabel(est.base[id]),
+          countDelta(est.base[id], est.latest[id], est.year),
+          shareDelta(baseShare[id], latestShare[id]),
+        ]));
+      }
     });
     document.getElementById("total").textContent = fmt.format(total);
+
+    var foot = document.getElementById("total-change");
+    foot.innerHTML = "";
+    foot.hidden = !est;
+    if (est) {
+      var baseTotal = sumOf(est.base);
+      foot.appendChild(changeRow([baseLabel(baseTotal), countDelta(baseTotal, total, est.year)]).firstChild);
+    }
+    document.getElementById("estimate-note").hidden = !est;
+    if (est) document.getElementById("estimate-year").textContent = est.year;
+
     applySwatchColors(colors);
     return { total: total, rows: rows };
   }
@@ -63,13 +160,35 @@
     var top = stats.rows;
     var diversity = 1 - top.reduce(function (s, r) { return s + r.share * r.share; }, 0);
     var label = function (r) { return r.g.label; };
-    var p = document.getElementById("summary");
-    p.textContent =
-      "The 2020 Census counted " + fmt.format(stats.total) + " people in " + page.name + ". " +
-      label(top[0]) + " residents were the largest group, at " + pct(top[0].share) +
-      ", followed by " + label(top[1]) + " (" + pct(top[1].share) + ") and " +
+    var est = page.estimates;
+    var census = fmt.format(sumOf(page.census2020));
+    var groups =
+      label(top[0]) + " residents were the largest group (" + pct(top[0].share) +
+      "), followed by " + label(top[1]) + " (" + pct(top[1].share) + ") and " +
       label(top[2]) + " (" + pct(top[2].share) + ").";
+    var text;
+    if (est) {
+      var change = (stats.total - sumOf(est.base)) / sumOf(est.base) * 100;
+      text = "An estimated " + fmt.format(stats.total) + " people lived in " + page.name +
+        " in July " + est.year +
+        (Math.abs(change) < 0.5 ? ", about the same as in 2020. " :
+          ", " + (change > 0 ? "up " : "down ") + Math.abs(change).toFixed(1) + "% from 2020. ") + groups;
+      // Fastest-growing group, ignoring groups too small for a meaningful percentage.
+      var growth = cfg.groups
+        .filter(function (g) { return est.base[g.id] >= MIN_BASE_FOR_PERCENT * 10; })
+        .map(function (g) { return { g: g, change: (est.latest[g.id] - est.base[g.id]) / est.base[g.id] * 100 }; })
+        .sort(function (a, b) { return b.change - a.change; });
+      if (growth.length && growth[0].change >= 0.5) {
+        text += " The fastest-growing group since 2020 was " + growth[0].g.label +
+          " (up " + growth[0].change.toFixed(1) + "%).";
+      }
+      text += " The map's dots show the 2020 Census, which counted " + census + " people here.";
+    } else {
+      text = "The 2020 Census counted " + census + " people in " + page.name + ". " + groups;
+    }
+    document.getElementById("summary").textContent = text;
     document.getElementById("diversity").textContent = pct(diversity);
+    document.getElementById("diversity-year").textContent = est ? " in " + est.year : "";
   }
 
   /* ---------- color picker ---------- */

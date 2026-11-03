@@ -238,3 +238,33 @@ body.index h2 span { font-size: 14px; font-weight: 400; color: var(--muted); mar
 
 .county-tip strong { display: block; font-weight: 600; }
 .county-tip span { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- change since 2020 ---------- */
+
+.groups tr.has-change th,
+.groups tr.has-change td { border-bottom: 0; padding-bottom: 2px; }
+
+.groups tr.change td {
+  padding: 0 0 8px 22px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: normal;
+}
+
+.groups tfoot tr.change td { padding-left: 0; border-bottom: 0; }
+
+.groups .latest { font-variant-numeric: tabular-nums; margin-right: 10px; }
+
+.groups .delta {
+  display: inline-block;
+  margin-right: 10px;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+
+.groups .delta .arrow { font-size: 9px; margin-right: 3px; vertical-align: 1px; }
+.groups .delta.up, .groups .delta.down { color: #3a4249; }
+.groups .delta.flat .arrow { font-size: 12px; vertical-align: 0; }
+
+.estimate-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }

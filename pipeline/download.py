@@ -1,11 +1,13 @@
-"""Download the Census files for every state in config.STATES (skips existing)."""
+"""Download the Census files for every state in config.STATES (skips existing):
+redistricting counts, block shapes, and population estimates."""
 import subprocess
 
-from config import RAW, STATES
+from config import PEP_VINTAGE, RAW, STATES
 
 CENSUS = "https://www2.census.gov"
 PL = CENSUS + "/programs-surveys/decennial/2020/data/01-Redistricting_File--PL_94-171/{folder}/{prefix}2020.pl.zip"
 BLOCKS = CENSUS + "/geo/tiger/TIGER2020/TABBLOCK20/tl_2020_{fips}_tabblock20.zip"
+PEP = CENSUS + "/programs-surveys/popest/datasets/2020-{v}/counties/asrh/cc-est{v}-alldata-{fips}.csv"
 
 
 def fetch(url, path):
@@ -21,6 +23,7 @@ def main():
         folder = name.replace(" ", "_")
         fetch(PL.format(folder=folder, prefix=prefix), RAW / f"{prefix}2020.pl.zip")
         fetch(BLOCKS.format(fips=fips), RAW / f"tl_2020_{fips}_tabblock20.zip")
+        fetch(PEP.format(v=PEP_VINTAGE, fips=fips), RAW / f"cc-est{PEP_VINTAGE}-alldata-{fips}.csv")
 
 
 if __name__ == "__main__":
