@@ -11,8 +11,15 @@ SITE = ROOT / "site"
 STATES = {
     "04": ("az", "Arizona", "AZ"),
     "06": ("ca", "California", "CA"),
+    "08": ("co", "Colorado", "CO"),
+    "16": ("id", "Idaho", "ID"),
+    "30": ("mt", "Montana", "MT"),
     "32": ("nv", "Nevada", "NV"),
+    "35": ("nm", "New Mexico", "NM"),
     "41": ("or", "Oregon", "OR"),
+    "49": ("ut", "Utah", "UT"),
+    "53": ("wa", "Washington", "WA"),
+    "56": ("wy", "Wyoming", "WY"),
 }
 
 # Census Bureau Population Estimates vintage for the "since 2020" figures
