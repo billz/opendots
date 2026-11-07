@@ -11,7 +11,9 @@ import re
 import zipfile
 from html import escape
 
+import numpy as np
 import shapefile
+import shapely
 from shapely.geometry import mapping, shape
 
 from config import GROUPS, PEP_VINTAGE, RAW, SITE, STATES, WORK
@@ -38,6 +40,26 @@ def read_shapes(zip_name):
         fields = [f[0] for f in reader.fields[1:]]
         for sr in reader.iterShapeRecords():
             yield dict(zip(fields, sr.record)), shape(sr.shape.__geo_interface__)
+
+
+# Shown on county pages that have no newer estimates.
+NO_ESTIMATES = {
+    "09": "Connecticut replaced its counties with nine planning regions in 2022, and newer "
+          "Census Bureau estimates are published only for the regions, so this page shows the 2020 Census.",
+    "default": "Newer Census Bureau estimates aren't available for this county, so this page shows the 2020 Census.",
+}
+
+
+def unwrap(geom):
+    """Keep shapes that cross the 180° line (Alaska's Aleutians) contiguous.
+
+    Parts with positive longitudes are shifted by -360°, so the shape spans
+    e.g. -187°..-130° instead of -180°..180° (which would fit the whole world).
+    """
+    minx, _, maxx, _ = geom.bounds
+    if maxx - minx <= 180:
+        return geom
+    return shapely.transform(geom, lambda c: np.column_stack([np.where(c[:, 0] > 0, c[:, 0] - 360, c[:, 0]), c[:, 1]]))
 
 
 def focus_bbox(geom, min_share=0.01):
@@ -75,11 +97,11 @@ def main():
     template = (SITE / "templates" / "county.html").read_text()
     (SITE / "data").mkdir(exist_ok=True)
 
-    state_geoms = {r["STATEFP"]: g for r, g in read_shapes("cb_2020_us_state_500k.zip") if r["STATEFP"] in STATES}
+    state_geoms = {r["STATEFP"]: unwrap(g) for r, g in read_shapes("cb_2020_us_state_500k.zip") if r["STATEFP"] in STATES}
     county_geoms = {}
     for r, g in read_shapes("cb_2020_us_county_500k.zip"):
         if r["STATEFP"] in STATES:
-            county_geoms[(r["STATEFP"], r["COUNTYFP"])] = (r["NAMELSAD"], g)
+            county_geoms[(r["STATEFP"], r["COUNTYFP"])] = (r["NAMELSAD"], unwrap(g))
 
     index_items = []
     manifest = []
@@ -99,8 +121,11 @@ def main():
         counties_file = f"counties-{postal.lower()}.json"
         # Headline populations everywhere (hover labels, county lists, index)
         # are the latest estimates, matching the page totals.
-        latest = {cf: total(e["latest"]) for cf, e in estimates.items()}
-        state_latest = sum(latest.values())
+        # Counties without estimates (Connecticut: the estimates use the
+        # planning regions it adopted in 2022) fall back to the 2020 Census.
+        latest = {cf: total(estimates[cf]["latest"]) if cf in estimates else total(c)
+                  for cf, c in counts["counties"].items()}
+        state_latest = sum(total(e["latest"]) for e in estimates.values())
         write_counties(counties_file, counties, latest)
 
         # State page
@@ -130,7 +155,7 @@ def main():
                 "parent": {"slug": state_slug, "name": state_name},
                 "census2020": counts["counties"][cf], "bbox": focus_bbox(geom), "boundary": mapping(geom),
                 "counties": counties_file,
-                "estimates": page_estimates(estimates[cf]),
+                **({"estimates": page_estimates(estimates[cf])} if cf in estimates else {"noEstimates": NO_ESTIMATES.get(fips, NO_ESTIMATES["default"])}),
             }, f"{county_name}, {postal}", f"{county_name}, {state_name}", nav, "")
 
         index_items.append((state_name, state_slug, state_latest, children))
