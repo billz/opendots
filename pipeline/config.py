@@ -9,7 +9,10 @@ SITE = ROOT / "site"
 # States to build: FIPS -> (Census file prefix, name, postal code).
 # Census bulk files live under .../PL_94-171/<Folder_Name>/<prefix>2020.pl.zip
 STATES = {
+    "04": ("az", "Arizona", "AZ"),
     "06": ("ca", "California", "CA"),
+    "32": ("nv", "Nevada", "NV"),
+    "41": ("or", "Oregon", "OR"),
 }
 
 # Census Bureau Population Estimates vintage for the "since 2020" figures

@@ -3,7 +3,7 @@
 Inputs:  data/work/counts/<fips>.json, data/raw/cc-est<vintage>-alldata-<fips>.csv,
          data/raw/cb_2020_us_state_500k.zip, data/raw/cb_2020_us_county_500k.zip
 Outputs: site/data/<slug>.json, site/<slug>.html (from site/templates/county.html),
-         site/index.html
+         site/data/counties-<postal>.json, site/data/states.json, site/index.html
 """
 import io
 import json
@@ -82,6 +82,7 @@ def main():
             county_geoms[(r["STATEFP"], r["COUNTYFP"])] = (r["NAMELSAD"], g)
 
     index_items = []
+    manifest = []
     for fips, (_, state_name, postal) in STATES.items():
         counts = json.loads((WORK / "counts" / f"{fips}.json").read_text())
         estimates = read_estimates(fips)
@@ -96,11 +97,15 @@ def main():
 
         # Clickable county layer shared by every page in the state
         counties_file = f"counties-{postal.lower()}.json"
-        write_counties(counties_file, counties, counts)
+        # Headline populations everywhere (hover labels, county lists, index)
+        # are the latest estimates, matching the page totals.
+        latest = {cf: total(e["latest"]) for cf, e in estimates.items()}
+        state_latest = sum(latest.values())
+        write_counties(counties_file, counties, latest)
 
         # State page
         geom = state_geoms[fips].simplify(0.002, preserve_topology=True)
-        children = [{"name": n, "slug": s, "people": total(counts["counties"][cf])} for cf, n, s, _ in counties]
+        children = [{"name": n, "slug": s, "people": latest[cf]} for cf, n, s, _ in counties]
         children_html = (
             '<details class="children"><summary>Counties (' + str(len(children)) + ")</summary><ul>" +
             "".join(f'<li><a href="{c["slug"]}.html">{escape(c["name"])}</a> '
@@ -128,18 +133,24 @@ def main():
                 "estimates": page_estimates(estimates[cf]),
             }, f"{county_name}, {postal}", f"{county_name}, {state_name}", nav, "")
 
-        index_items.append((state_name, state_slug, total(counts["state"]), children))
+        index_items.append((state_name, state_slug, state_latest, children))
+        manifest.append({
+            "fips": fips, "slug": state_slug, "name": state_name, "postal": postal,
+            "bbox": [round(v, 4) for v in state_geoms[fips].bounds], "counties": counties_file,
+        })
         print(f"{state_name}: wrote 1 state page and {len(counties)} county pages")
 
+    # Lets the map load each state's clickable counties when it comes into view.
+    (SITE / "data" / "states.json").write_text(json.dumps(manifest, separators=(",", ":")))
     write_index(index_items)
 
 
-def write_counties(filename, counties, counts):
+def write_counties(filename, counties, people):
     """All counties in a state as one GeoJSON file, for hover and click."""
     features = [
         {
             "type": "Feature",
-            "properties": {"slug": slug, "name": name, "people": total(counts["counties"][cf])},
+            "properties": {"slug": slug, "name": name, "people": people[cf]},
             "geometry": mapping(geom.simplify(0.002, preserve_topology=True)),
         }
         for cf, name, slug, geom in counties
@@ -156,7 +167,7 @@ def write_index(items):
         links = "".join(f'<li><a href="{c["slug"]}.html">{escape(c["name"])}</a></li>' for c in children)
         sections.append(
             f'<section><h2><a href="{state_slug}.html">{escape(state_name)}</a> '
-            f'<span>{people:,} people</span></h2><ul class="county-list">{links}</ul></section>'
+            f'<span>{people:,} people ({PEP_VINTAGE})</span></h2><ul class="county-list">{links}</ul></section>'
         )
     html = f"""<!doctype html>
 <html lang="en">
