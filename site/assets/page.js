@@ -141,8 +141,14 @@
       var baseTotal = sumOf(est.base);
       foot.appendChild(changeRow([baseLabel(baseTotal), countDelta(baseTotal, total, est.year)]).firstChild);
     }
-    document.getElementById("estimate-note").hidden = !est;
+    var note = document.getElementById("estimate-note");
+    var noteText = document.getElementById("estimate-note-text");
+    var noEst = document.getElementById("no-estimates");
+    note.hidden = !est && !page.noEstimates;
+    noteText.hidden = !est;
+    noEst.hidden = !!est || !page.noEstimates;
     if (est) document.getElementById("estimate-year").textContent = est.year;
+    else if (page.noEstimates) noEst.textContent = page.noEstimates;
 
     applySwatchColors(colors);
     return { total: total, rows: rows };

@@ -6,9 +6,9 @@ A racial and ethnic dot map built entirely from open data and open-source
 parts: one dot per person from the 2020 Census, placed at random inside the
 census block where they were counted.
 
-Currently covers **California**: a state page (`site/california.html`), all
-58 county pages, and an index (`site/index.html`). Add states to `STATES` in
-`pipeline/config.py` and re-run `make` to cover more.
+Covers all 50 states and the District of Columbia: a page per state and
+county, and an index (`site/index.html`). The state list is `ALL_STATES` in
+`pipeline/config.py`.
 
 ## Run it
 
@@ -16,6 +16,9 @@ Currently covers **California**: a state page (`site/california.html`), all
 make            # set up Python, download Census data, build dots, tiles, and pages
 make serve      # http://localhost:8000 (supports range requests for PMTiles)
 ```
+
+To build only some states (much faster for testing), set `OPENDOTS_STATES`
+to their postal codes, e.g. `OPENDOTS_STATES=AK,HI,CT make dots tiles site`.
 
 Or open `site/` through any web server (the page loads JSON, so `file://`
 won't work). Re-running steps: `make dots`, `make tiles`, `make site`.
@@ -42,6 +45,15 @@ palette exactly, including blends. Colors, labels, the optional color
 picker, and the tile source (folder or PMTiles) live in
 `site/assets/config.js`. States, zoom levels, and worker count live in
 `pipeline/config.py`.
+
+A national build takes about 70 minutes on a standard GitHub runner
+(4 CPUs, 16 GB memory) and peaks at about 27 GB of disk; it downloads about
+11 GB of Census files and produces a ~1.4 GB `tiles.pmtiles`.
+
+Special cases handled by the pipeline: Alaska's Aleutian Islands cross the
+180° meridian, so shapes there are shifted to keep the state contiguous; and
+Connecticut's newer estimates use the planning regions it adopted in 2022,
+so its county pages show the 2020 Census.
 
 For hosting, switch `tiles` in `site/assets/config.js` to `"tiles.pmtiles"`
 and upload `site/` without the `tiles/` folder. The single file needs a host

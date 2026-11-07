@@ -46,7 +46,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # A national build (50 states + DC) takes about 70 minutes on a standard
+    # runner (4 CPUs, 16 GB memory); the peak disk use is ~27 GB of 88 GB free.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -64,12 +66,17 @@ jobs:
           cache: pip
           cache-dependency-path: pipeline/requirements.txt
 
-      # Census files (~3 GB for the 11 western states) rarely change; cache them so
-      # each build doesn't download them again.
+      # Cache the smaller Census files (population counts, estimates, outlines;
+      # ~1.1 GB nationally). The block shapes (~9.8 GB) would push the cache
+      # past GitHub's 10 GB per-repo limit, and re-downloading them takes about
+      # a minute.
       - name: Cache Census downloads
         uses: actions/cache@v4
         with:
-          path: data/raw
+          path: |
+            data/raw/*.pl.zip
+            data/raw/cc-est*.csv
+            data/raw/cb_*.zip
           key: census-${{ hashFiles('pipeline/config.py', 'pipeline/download.py') }}
 
       - name: Set up Python environment
