@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>New Mexico: Race and Ethnicity Dot Map</title>
+<meta name="description" content="A map of every person in New Mexico, from the 2020 Census, one dot per person, colored by race and ethnicity.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/ol/ol.css">
+<link rel="stylesheet" href="vendor/huebee/huebee.min.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-slug="new-mexico">
+<div id="map" class="map" aria-label="Dot map of New Mexico"></div>
+
+<aside class="panel">
+  <header>
+    <nav class="crumbs" id="crumbs"><a href="index.html">All places</a></nav>
+    <p class="eyebrow">2025 estimates &middot; dots from the 2020 Census</p>
+    <h1 id="title">New Mexico</h1>
+    <p class="lede">Race and ethnicity</p>
+  </header>
+
+  <table id="groups" class="groups">
+    <thead>
+      <tr><th scope="col">Group</th><th scope="col" class="num" id="people-heading">People</th><th scope="col" class="share">Share</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr><th scope="row">Total</th><td class="num" id="total"></td><td></td></tr>
+      <tr class="change" id="total-change" hidden></tr>
+    </tfoot>
+  </table>
+  <p class="estimate-note" id="estimate-note" hidden>Figures are Census Bureau estimates for July <span id="estimate-year"></span>. The line under each group shows April 2020 and the change since then. The dots on the map are from the 2020 Census.</p>
+  <button type="button" id="reset-colors" class="link-button" hidden>Reset colors</button>
+
+  <p id="summary" class="summary" aria-live="polite">Loading&hellip;</p>
+
+  <div class="stat">
+    <span class="stat-value" id="diversity">&ndash;</span>
+    <span class="stat-label">Diversity index<span id="diversity-year"></span>: the chance that two people picked at random belong to different groups.</span>
+  </div>
+
+  <div id="children"><details class="children"><summary>Counties (33)</summary><ul><li><a href="bernalillo-county-nm.html">Bernalillo County</a> <span>667,601</span></li><li><a href="catron-county-nm.html">Catron County</a> <span>3,827</span></li><li><a href="chaves-county-nm.html">Chaves County</a> <span>63,364</span></li><li><a href="cibola-county-nm.html">Cibola County</a> <span>26,807</span></li><li><a href="colfax-county-nm.html">Colfax County</a> <span>12,184</span></li><li><a href="curry-county-nm.html">Curry County</a> <span>46,655</span></li><li><a href="de-baca-county-nm.html">De Baca County</a> <span>1,647</span></li><li><a href="do-a-ana-county-nm.html">Doña Ana County</a> <span>229,091</span></li><li><a href="eddy-county-nm.html">Eddy County</a> <span>62,509</span></li><li><a href="grant-county-nm.html">Grant County</a> <span>27,252</span></li><li><a href="guadalupe-county-nm.html">Guadalupe County</a> <span>4,343</span></li><li><a href="harding-county-nm.html">Harding County</a> <span>617</span></li><li><a href="hidalgo-county-nm.html">Hidalgo County</a> <span>3,929</span></li><li><a href="lea-county-nm.html">Lea County</a> <span>74,749</span></li><li><a href="lincoln-county-nm.html">Lincoln County</a> <span>19,844</span></li><li><a href="los-alamos-county-nm.html">Los Alamos County</a> <span>19,407</span></li><li><a href="luna-county-nm.html">Luna County</a> <span>25,407</span></li><li><a href="mckinley-county-nm.html">McKinley County</a> <span>68,119</span></li><li><a href="mora-county-nm.html">Mora County</a> <span>4,051</span></li><li><a href="otero-county-nm.html">Otero County</a> <span>70,368</span></li><li><a href="quay-county-nm.html">Quay County</a> <span>8,454</span></li><li><a href="rio-arriba-county-nm.html">Rio Arriba County</a> <span>39,832</span></li><li><a href="roosevelt-county-nm.html">Roosevelt County</a> <span>18,615</span></li><li><a href="san-juan-county-nm.html">San Juan County</a> <span>120,340</span></li><li><a href="san-miguel-county-nm.html">San Miguel County</a> <span>26,260</span></li><li><a href="sandoval-county-nm.html">Sandoval County</a> <span>159,565</span></li><li><a href="santa-fe-county-nm.html">Santa Fe County</a> <span>156,907</span></li><li><a href="sierra-county-nm.html">Sierra County</a> <span>11,395</span></li><li><a href="socorro-county-nm.html">Socorro County</a> <span>15,838</span></li><li><a href="taos-county-nm.html">Taos County</a> <span>34,564</span></li><li><a href="torrance-county-nm.html">Torrance County</a> <span>16,100</span></li><li><a href="union-county-nm.html">Union County</a> <span>3,844</span></li><li><a href="valencia-county-nm.html">Valencia County</a> <span>82,013</span></li></ul></details></div>
+
+  <details class="about">
+    <summary>How this map is made</summary>
+    <p>Each dot is one person counted in the 2020 Census. The Census reports how many people of each group live in every census block (often a single city block). We place each person's dot at a random point inside their block, so dots show where people live at the block level, not at real addresses.</p>
+    <p>Groups follow the Census question on Hispanic or Latino origin and race. "Hispanic or Latino" includes people of any race; every other group is non-Hispanic. "Multiracial" means two or more races. "Native American/Other" combines American Indian and Alaska Native, Native Hawaiian and Other Pacific Islander, and Some Other Race (the newer estimates have no "Some other race" category, so there it covers only the first two).</p>
+    <p>Where dots overlap, the color is a blend of the groups in that spot, and denser areas appear more solid.</p>
+    <p>The dots show the 2020 Census; the figures in the table come from the Census Bureau's population estimates, which update each county's population every year from births, deaths, and migration. Change is measured from the estimates' April 2020 starting point, which matches the census except that "Some other race" is assigned to a specific race, so small differences from the 2020 counts are expected. Estimates are not published for individual blocks, so the dots can't be updated past 2020.</p>
+  </details>
+
+  <footer class="sources">
+    <p><strong>Sources:</strong> U.S. Census Bureau, <a href="https://www.census.gov/programs-surveys/decennial-census/about/rdo/summary-files.html">2020 Census Redistricting Data (P.L. 94-171)</a> <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html">TIGER/Line block shapes</a>, and <a href="https://www.census.gov/programs-surveys/popest.html">Population Estimates</a>. Basemap: <a href="https://openfreemap.org">OpenFreeMap</a>, <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</p>
+  </footer>
+</aside>
+
+<script src="vendor/ol/ol.js"></script>
+<script src="vendor/pmtiles/pmtiles.js"></script>
+<script src="vendor/huebee/huebee.pkgd.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/map.js"></script>
+<script src="assets/page.js"></script>
+</body>
+</html>

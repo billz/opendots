@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Washington: Race and Ethnicity Dot Map</title>
+<meta name="description" content="A map of every person in Washington, from the 2020 Census, one dot per person, colored by race and ethnicity.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/ol/ol.css">
+<link rel="stylesheet" href="vendor/huebee/huebee.min.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-slug="washington">
+<div id="map" class="map" aria-label="Dot map of Washington"></div>
+
+<aside class="panel">
+  <header>
+    <nav class="crumbs" id="crumbs"><a href="index.html">All places</a></nav>
+    <p class="eyebrow">2025 estimates &middot; dots from the 2020 Census</p>
+    <h1 id="title">Washington</h1>
+    <p class="lede">Race and ethnicity</p>
+  </header>
+
+  <table id="groups" class="groups">
+    <thead>
+      <tr><th scope="col">Group</th><th scope="col" class="num" id="people-heading">People</th><th scope="col" class="share">Share</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr><th scope="row">Total</th><td class="num" id="total"></td><td></td></tr>
+      <tr class="change" id="total-change" hidden></tr>
+    </tfoot>
+  </table>
+  <p class="estimate-note" id="estimate-note" hidden>Figures are Census Bureau estimates for July <span id="estimate-year"></span>. The line under each group shows April 2020 and the change since then. The dots on the map are from the 2020 Census.</p>
+  <button type="button" id="reset-colors" class="link-button" hidden>Reset colors</button>
+
+  <p id="summary" class="summary" aria-live="polite">Loading&hellip;</p>
+
+  <div class="stat">
+    <span class="stat-value" id="diversity">&ndash;</span>
+    <span class="stat-label">Diversity index<span id="diversity-year"></span>: the chance that two people picked at random belong to different groups.</span>
+  </div>
+
+  <div id="children"><details class="children"><summary>Counties (39)</summary><ul><li><a href="adams-county-wa.html">Adams County</a> <span>21,488</span></li><li><a href="asotin-county-wa.html">Asotin County</a> <span>22,545</span></li><li><a href="benton-county-wa.html">Benton County</a> <span>221,722</span></li><li><a href="chelan-county-wa.html">Chelan County</a> <span>81,941</span></li><li><a href="clallam-county-wa.html">Clallam County</a> <span>78,202</span></li><li><a href="clark-county-wa.html">Clark County</a> <span>532,119</span></li><li><a href="columbia-county-wa.html">Columbia County</a> <span>4,141</span></li><li><a href="cowlitz-county-wa.html">Cowlitz County</a> <span>114,885</span></li><li><a href="douglas-county-wa.html">Douglas County</a> <span>46,473</span></li><li><a href="ferry-county-wa.html">Ferry County</a> <span>7,517</span></li><li><a href="franklin-county-wa.html">Franklin County</a> <span>102,612</span></li><li><a href="garfield-county-wa.html">Garfield County</a> <span>2,416</span></li><li><a href="grant-county-wa.html">Grant County</a> <span>105,727</span></li><li><a href="grays-harbor-county-wa.html">Grays Harbor County</a> <span>78,144</span></li><li><a href="island-county-wa.html">Island County</a> <span>85,657</span></li><li><a href="jefferson-county-wa.html">Jefferson County</a> <span>33,970</span></li><li><a href="king-county-wa.html">King County</a> <span>2,344,939</span></li><li><a href="kitsap-county-wa.html">Kitsap County</a> <span>283,374</span></li><li><a href="kittitas-county-wa.html">Kittitas County</a> <span>48,803</span></li><li><a href="klickitat-county-wa.html">Klickitat County</a> <span>24,331</span></li><li><a href="lewis-county-wa.html">Lewis County</a> <span>88,062</span></li><li><a href="lincoln-county-wa.html">Lincoln County</a> <span>11,982</span></li><li><a href="mason-county-wa.html">Mason County</a> <span>71,165</span></li><li><a href="okanogan-county-wa.html">Okanogan County</a> <span>45,230</span></li><li><a href="pacific-county-wa.html">Pacific County</a> <span>24,357</span></li><li><a href="pend-oreille-county-wa.html">Pend Oreille County</a> <span>14,457</span></li><li><a href="pierce-county-wa.html">Pierce County</a> <span>946,288</span></li><li><a href="san-juan-county-wa.html">San Juan County</a> <span>18,577</span></li><li><a href="skagit-county-wa.html">Skagit County</a> <span>132,975</span></li><li><a href="skamania-county-wa.html">Skamania County</a> <span>12,669</span></li><li><a href="snohomish-county-wa.html">Snohomish County</a> <span>870,656</span></li><li><a href="spokane-county-wa.html">Spokane County</a> <span>558,344</span></li><li><a href="stevens-county-wa.html">Stevens County</a> <span>49,668</span></li><li><a href="thurston-county-wa.html">Thurston County</a> <span>304,261</span></li><li><a href="wahkiakum-county-wa.html">Wahkiakum County</a> <span>4,873</span></li><li><a href="walla-walla-county-wa.html">Walla Walla County</a> <span>62,361</span></li><li><a href="whatcom-county-wa.html">Whatcom County</a> <span>236,392</span></li><li><a href="whitman-county-wa.html">Whitman County</a> <span>48,512</span></li><li><a href="yakima-county-wa.html">Yakima County</a> <span>259,185</span></li></ul></details></div>
+
+  <details class="about">
+    <summary>How this map is made</summary>
+    <p>Each dot is one person counted in the 2020 Census. The Census reports how many people of each group live in every census block (often a single city block). We place each person's dot at a random point inside their block, so dots show where people live at the block level, not at real addresses.</p>
+    <p>Groups follow the Census question on Hispanic or Latino origin and race. "Hispanic or Latino" includes people of any race; every other group is non-Hispanic. "Multiracial" means two or more races. "Native American/Other" combines American Indian and Alaska Native, Native Hawaiian and Other Pacific Islander, and Some Other Race (the newer estimates have no "Some other race" category, so there it covers only the first two).</p>
+    <p>Where dots overlap, the color is a blend of the groups in that spot, and denser areas appear more solid.</p>
+    <p>The dots show the 2020 Census; the figures in the table come from the Census Bureau's population estimates, which update each county's population every year from births, deaths, and migration. Change is measured from the estimates' April 2020 starting point, which matches the census except that "Some other race" is assigned to a specific race, so small differences from the 2020 counts are expected. Estimates are not published for individual blocks, so the dots can't be updated past 2020.</p>
+  </details>
+
+  <footer class="sources">
+    <p><strong>Sources:</strong> U.S. Census Bureau, <a href="https://www.census.gov/programs-surveys/decennial-census/about/rdo/summary-files.html">2020 Census Redistricting Data (P.L. 94-171)</a> <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html">TIGER/Line block shapes</a>, and <a href="https://www.census.gov/programs-surveys/popest.html">Population Estimates</a>. Basemap: <a href="https://openfreemap.org">OpenFreeMap</a>, <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</p>
+  </footer>
+</aside>
+
+<script src="vendor/ol/ol.js"></script>
+<script src="vendor/pmtiles/pmtiles.js"></script>
+<script src="vendor/huebee/huebee.pkgd.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/map.js"></script>
+<script src="assets/page.js"></script>
+</body>
+</html>

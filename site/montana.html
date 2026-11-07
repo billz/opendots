@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Montana: Race and Ethnicity Dot Map</title>
+<meta name="description" content="A map of every person in Montana, from the 2020 Census, one dot per person, colored by race and ethnicity.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/ol/ol.css">
+<link rel="stylesheet" href="vendor/huebee/huebee.min.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-slug="montana">
+<div id="map" class="map" aria-label="Dot map of Montana"></div>
+
+<aside class="panel">
+  <header>
+    <nav class="crumbs" id="crumbs"><a href="index.html">All places</a></nav>
+    <p class="eyebrow">2025 estimates &middot; dots from the 2020 Census</p>
+    <h1 id="title">Montana</h1>
+    <p class="lede">Race and ethnicity</p>
+  </header>
+
+  <table id="groups" class="groups">
+    <thead>
+      <tr><th scope="col">Group</th><th scope="col" class="num" id="people-heading">People</th><th scope="col" class="share">Share</th></tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr><th scope="row">Total</th><td class="num" id="total"></td><td></td></tr>
+      <tr class="change" id="total-change" hidden></tr>
+    </tfoot>
+  </table>
+  <p class="estimate-note" id="estimate-note" hidden>Figures are Census Bureau estimates for July <span id="estimate-year"></span>. The line under each group shows April 2020 and the change since then. The dots on the map are from the 2020 Census.</p>
+  <button type="button" id="reset-colors" class="link-button" hidden>Reset colors</button>
+
+  <p id="summary" class="summary" aria-live="polite">Loading&hellip;</p>
+
+  <div class="stat">
+    <span class="stat-value" id="diversity">&ndash;</span>
+    <span class="stat-label">Diversity index<span id="diversity-year"></span>: the chance that two people picked at random belong to different groups.</span>
+  </div>
+
+  <div id="children"><details class="children"><summary>Counties (56)</summary><ul><li><a href="beaverhead-county-mt.html">Beaverhead County</a> <span>10,043</span></li><li><a href="big-horn-county-mt.html">Big Horn County</a> <span>12,752</span></li><li><a href="blaine-county-mt.html">Blaine County</a> <span>6,860</span></li><li><a href="broadwater-county-mt.html">Broadwater County</a> <span>8,493</span></li><li><a href="carbon-county-mt.html">Carbon County</a> <span>11,466</span></li><li><a href="carter-county-mt.html">Carter County</a> <span>1,383</span></li><li><a href="cascade-county-mt.html">Cascade County</a> <span>85,029</span></li><li><a href="chouteau-county-mt.html">Chouteau County</a> <span>5,865</span></li><li><a href="custer-county-mt.html">Custer County</a> <span>12,034</span></li><li><a href="daniels-county-mt.html">Daniels County</a> <span>1,612</span></li><li><a href="dawson-county-mt.html">Dawson County</a> <span>8,692</span></li><li><a href="deer-lodge-county-mt.html">Deer Lodge County</a> <span>9,709</span></li><li><a href="fallon-county-mt.html">Fallon County</a> <span>2,959</span></li><li><a href="fergus-county-mt.html">Fergus County</a> <span>11,825</span></li><li><a href="flathead-county-mt.html">Flathead County</a> <span>115,429</span></li><li><a href="gallatin-county-mt.html">Gallatin County</a> <span>128,740</span></li><li><a href="garfield-county-mt.html">Garfield County</a> <span>1,148</span></li><li><a href="glacier-county-mt.html">Glacier County</a> <span>13,463</span></li><li><a href="golden-valley-county-mt.html">Golden Valley County</a> <span>844</span></li><li><a href="granite-county-mt.html">Granite County</a> <span>3,658</span></li><li><a href="hill-county-mt.html">Hill County</a> <span>16,167</span></li><li><a href="jefferson-county-mt.html">Jefferson County</a> <span>13,329</span></li><li><a href="judith-basin-county-mt.html">Judith Basin County</a> <span>2,162</span></li><li><a href="lake-county-mt.html">Lake County</a> <span>33,392</span></li><li><a href="lewis-and-clark-county-mt.html">Lewis and Clark County</a> <span>75,331</span></li><li><a href="liberty-county-mt.html">Liberty County</a> <span>1,957</span></li><li><a href="lincoln-county-mt.html">Lincoln County</a> <span>22,328</span></li><li><a href="madison-county-mt.html">Madison County</a> <span>10,026</span></li><li><a href="mccone-county-mt.html">McCone County</a> <span>1,720</span></li><li><a href="meagher-county-mt.html">Meagher County</a> <span>2,137</span></li><li><a href="mineral-county-mt.html">Mineral County</a> <span>5,185</span></li><li><a href="missoula-county-mt.html">Missoula County</a> <span>123,513</span></li><li><a href="musselshell-county-mt.html">Musselshell County</a> <span>5,582</span></li><li><a href="park-county-mt.html">Park County</a> <span>18,214</span></li><li><a href="petroleum-county-mt.html">Petroleum County</a> <span>548</span></li><li><a href="phillips-county-mt.html">Phillips County</a> <span>4,203</span></li><li><a href="pondera-county-mt.html">Pondera County</a> <span>6,072</span></li><li><a href="powder-river-county-mt.html">Powder River County</a> <span>1,781</span></li><li><a href="powell-county-mt.html">Powell County</a> <span>7,157</span></li><li><a href="prairie-county-mt.html">Prairie County</a> <span>1,112</span></li><li><a href="ravalli-county-mt.html">Ravalli County</a> <span>48,582</span></li><li><a href="richland-county-mt.html">Richland County</a> <span>11,377</span></li><li><a href="roosevelt-county-mt.html">Roosevelt County</a> <span>10,242</span></li><li><a href="rosebud-county-mt.html">Rosebud County</a> <span>8,253</span></li><li><a href="sanders-county-mt.html">Sanders County</a> <span>14,062</span></li><li><a href="sheridan-county-mt.html">Sheridan County</a> <span>3,436</span></li><li><a href="silver-bow-county-mt.html">Silver Bow County</a> <span>36,118</span></li><li><a href="stillwater-county-mt.html">Stillwater County</a> <span>9,445</span></li><li><a href="sweet-grass-county-mt.html">Sweet Grass County</a> <span>3,762</span></li><li><a href="teton-county-mt.html">Teton County</a> <span>6,496</span></li><li><a href="toole-county-mt.html">Toole County</a> <span>5,211</span></li><li><a href="treasure-county-mt.html">Treasure County</a> <span>728</span></li><li><a href="valley-county-mt.html">Valley County</a> <span>7,385</span></li><li><a href="wheatland-county-mt.html">Wheatland County</a> <span>2,100</span></li><li><a href="wibaux-county-mt.html">Wibaux County</a> <span>885</span></li><li><a href="yellowstone-county-mt.html">Yellowstone County</a> <span>172,692</span></li></ul></details></div>
+
+  <details class="about">
+    <summary>How this map is made</summary>
+    <p>Each dot is one person counted in the 2020 Census. The Census reports how many people of each group live in every census block (often a single city block). We place each person's dot at a random point inside their block, so dots show where people live at the block level, not at real addresses.</p>
+    <p>Groups follow the Census question on Hispanic or Latino origin and race. "Hispanic or Latino" includes people of any race; every other group is non-Hispanic. "Multiracial" means two or more races. "Native American/Other" combines American Indian and Alaska Native, Native Hawaiian and Other Pacific Islander, and Some Other Race (the newer estimates have no "Some other race" category, so there it covers only the first two).</p>
+    <p>Where dots overlap, the color is a blend of the groups in that spot, and denser areas appear more solid.</p>
+    <p>The dots show the 2020 Census; the figures in the table come from the Census Bureau's population estimates, which update each county's population every year from births, deaths, and migration. Change is measured from the estimates' April 2020 starting point, which matches the census except that "Some other race" is assigned to a specific race, so small differences from the 2020 counts are expected. Estimates are not published for individual blocks, so the dots can't be updated past 2020.</p>
+  </details>
+
+  <footer class="sources">
+    <p><strong>Sources:</strong> U.S. Census Bureau, <a href="https://www.census.gov/programs-surveys/decennial-census/about/rdo/summary-files.html">2020 Census Redistricting Data (P.L. 94-171)</a> <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html">TIGER/Line block shapes</a>, and <a href="https://www.census.gov/programs-surveys/popest.html">Population Estimates</a>. Basemap: <a href="https://openfreemap.org">OpenFreeMap</a>, <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</p>
+  </footer>
+</aside>
+
+<script src="vendor/ol/ol.js"></script>
+<script src="vendor/pmtiles/pmtiles.js"></script>
+<script src="vendor/huebee/huebee.pkgd.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/map.js"></script>
+<script src="assets/page.js"></script>
+</body>
+</html>
