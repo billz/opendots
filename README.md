@@ -6,9 +6,10 @@ A racial and ethnic dot map built entirely from open data and open-source
 parts: one dot per person from the 2020 Census, placed at random inside the
 census block where they were counted.
 
-Covers all 50 states and the District of Columbia: a page per state and
-county, and an index (`site/index.html`). The state list is `ALL_STATES` in
-`pipeline/config.py`.
+Covers all 50 states and the District of Columbia. The home page
+(`site/index.html`, also `united-states.html`) is the national map; there is
+a page per state and county, and a list of all places (`site/places.html`).
+The state list is `ALL_STATES` in `pipeline/config.py`.
 
 ## Run it
 
@@ -16,6 +17,10 @@ county, and an index (`site/index.html`). The state list is `ALL_STATES` in
 make            # set up Python, download Census data, build dots, tiles, and pages
 make serve      # http://localhost:8000 (supports range requests for PMTiles)
 ```
+
+To work on pages without making dots or tiles, `make counts site` downloads
+only the small Census files (~1 GB nationally) and builds every page; point
+`tiles` in `site/assets/config.js` at the live `tiles.pmtiles` to see dots.
 
 To build only some states (much faster for testing), set `OPENDOTS_STATES`
 to their postal codes, e.g. `OPENDOTS_STATES=AK,HI,CT make dots tiles site`.
@@ -43,7 +48,10 @@ along). The clickable outlines come from `site/data/counties-<state>.json`.
 Tiles hold group shares and density, not colors, so the page applies any
 palette exactly, including blends. Colors, labels, the optional color
 picker, and the tile source (folder or PMTiles) live in
-`site/assets/config.js`. States, zoom levels, and worker count live in
+`site/assets/config.js`, along with `vividness` (how strongly mixed areas
+lean toward their majority color, and how visible sparse areas are; try
+values live with `dotmap.setVividness({...})` in the browser console).
+States, zoom levels, and worker count live in
 `pipeline/config.py`.
 
 A national build takes about 70 minutes on a standard GitHub runner

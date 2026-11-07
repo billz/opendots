@@ -29,6 +29,14 @@ window.DOTMAP_CONFIG = {
   tiles: "tiles/{z}/{x}/{y}.png",
   // tiles: "tiles.pmtiles",
 
+  // How the dot colors are drawn. color: 1 blends groups exactly where dots
+  // overlap (realistic but muted when zoomed out); higher values lean each
+  // spot toward its majority group. opacity: 1 draws density as rendered;
+  // higher values make sparsely settled areas more visible. farOpacity is
+  // the same for zoomed-out views (state and national scale).
+  // Try values live in the browser console: dotmap.setVividness({...}).
+  vividness: { color: 2, opacity: 1.5, farOpacity: 2.5 },
+
   // How far past the most detailed tiles people can zoom in. Each level
   // doubles the size of a dot: 0 = one pixel per dot, 1 = 2x2 pixels,
   // 2 = 4x4 (dots start to look like square blocks).

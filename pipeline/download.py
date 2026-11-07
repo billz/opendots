@@ -1,6 +1,7 @@
 """Download the Census files for every state in config.STATES (skips existing):
 redistricting counts, block shapes, and population estimates."""
 import subprocess
+import sys
 
 from config import PEP_VINTAGE, RAW, STATES
 
@@ -18,11 +19,15 @@ def fetch(url, path):
 
 
 def main():
+    # --counts-only skips the block shapes (~9.8 GB nationally); the rest is
+    # enough for `make_dots.py --counts-only` and building pages.
+    counts_only = "--counts-only" in sys.argv
     RAW.mkdir(parents=True, exist_ok=True)
     for fips, (prefix, name, _) in STATES.items():
         folder = name.replace(" ", "_")
         fetch(PL.format(folder=folder, prefix=prefix), RAW / f"{prefix}2020.pl.zip")
-        fetch(BLOCKS.format(fips=fips), RAW / f"tl_2020_{fips}_tabblock20.zip")
+        if not counts_only:
+            fetch(BLOCKS.format(fips=fips), RAW / f"tl_2020_{fips}_tabblock20.zip")
         fetch(PEP.format(v=PEP_VINTAGE, fips=fips), RAW / f"cc-est{PEP_VINTAGE}-alldata-{fips}.csv")
 
 

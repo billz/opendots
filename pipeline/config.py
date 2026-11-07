@@ -80,7 +80,7 @@ GROUPS = ["hispanic", "white", "black", "asian", "multiracial", "other"]
 # into a shared set of tiles; detail zooms are rendered in parallel, one
 # BUCKET_ZOOM tile (and everything inside it) at a time. Above MAX_ZOOM the
 # page enlarges the last level, which makes individual dots bigger.
-MIN_ZOOM = 5
+MIN_ZOOM = 3  # 3-4 give full-size tiles for the national and Alaska views
 BUCKET_ZOOM = 7
 MAX_ZOOM = 13
 

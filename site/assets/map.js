@@ -37,7 +37,30 @@
     return ctx.getImageData(0, 0, TILE, TILE * 2).data;
   }
 
-  function paint(raw, palette) {
+  // Lookup tables for the "vividness" settings (see config.js):
+  //   color:   weight each group's share by share^color before blending, so
+  //            mixed pixels lean toward their majority color (1 = true blend)
+  //   opacity: alpha' = 1 - (1 - alpha)^opacity, making sparse areas more
+  //            visible (1 = as rendered)
+  //   farOpacity: the same, for zoomed-out tiles (tile zoom <= FAR_ZOOM)
+  var FAR_ZOOM = 6;
+  var vivid = { color: 1, opacity: 1, farOpacity: 1 };
+  var shareLut = new Float32Array(256);
+  var alphaLut = new Uint8ClampedArray(256);
+  var farAlphaLut = new Uint8ClampedArray(256);
+  function setVividness(v) {
+    v = v || {};
+    vivid = { color: v.color || 1, opacity: v.opacity || 1, farOpacity: v.farOpacity || v.opacity || 1 };
+    for (var i = 0; i < 256; i++) {
+      shareLut[i] = Math.pow(i / 255, vivid.color);
+      alphaLut[i] = Math.round(255 * (1 - Math.pow(1 - i / 255, vivid.opacity)));
+      farAlphaLut[i] = Math.round(255 * (1 - Math.pow(1 - i / 255, vivid.farOpacity)));
+    }
+  }
+  setVividness();
+
+  function paint(raw, palette, z) {
+    var alphas = z <= FAR_ZOOM ? farAlphaLut : alphaLut;
     var c = document.createElement("canvas");
     c.width = c.height = TILE;
     var ctx = c.getContext("2d");
@@ -49,14 +72,16 @@
       var t = i * 4, b = bottom + t;
       var a = raw[b + 2];
       if (!a) continue;
-      var s0 = raw[t], s1 = raw[t + 1], s2 = raw[t + 2], s3 = raw[b], s4 = raw[b + 1];
-      var s5 = 255 - s0 - s1 - s2 - s3 - s4;
-      if (s5 < 0) s5 = 0;
+      var r0 = raw[t], r1 = raw[t + 1], r2 = raw[t + 2], r3 = raw[b], r4 = raw[b + 1];
+      var r5 = 255 - r0 - r1 - r2 - r3 - r4;
+      if (r5 < 0) r5 = 0;
+      var s0 = shareLut[r0], s1 = shareLut[r1], s2 = shareLut[r2],
+          s3 = shareLut[r3], s4 = shareLut[r4], s5 = shareLut[r5];
       var sum = s0 + s1 + s2 + s3 + s4 + s5 || 1;
       o[t]     = (s0 * p0[0] + s1 * p1[0] + s2 * p2[0] + s3 * p3[0] + s4 * p4[0] + s5 * p5[0]) / sum;
       o[t + 1] = (s0 * p0[1] + s1 * p1[1] + s2 * p2[1] + s3 * p3[1] + s4 * p4[1] + s5 * p5[1]) / sum;
       o[t + 2] = (s0 * p0[2] + s1 * p1[2] + s2 * p2[2] + s3 * p3[2] + s4 * p4[2] + s5 * p5[2]) / sum;
-      o[t + 3] = a;
+      o[t + 3] = alphas[a];
     }
     ctx.putImageData(out, 0, 0);
     return c;
@@ -76,8 +101,7 @@
   }
 
   // Fetch one tile's PNG from a PMTiles archive as an image (null if absent).
-  function pmtilesLoader(url) {
-    var archive = new pmtiles.PMTiles(url);
+  function pmtilesLoader(archive) {
     return function (z, x, y, done) {
       archive.getZxy(z, x, y).then(function (res) {
         if (!res) return done(null);
@@ -92,7 +116,8 @@
 
   function dotLayer(tiles, tileset, getPalette) {
     var usePmtiles = /\.pmtiles(\?|$)/.test(tiles);
-    var fetchPmtiles = usePmtiles ? pmtilesLoader(tiles) : null;
+    var archive = usePmtiles ? new pmtiles.PMTiles(tiles) : null;
+    var fetchPmtiles = archive ? pmtilesLoader(archive) : null;
     var source = new ol.source.XYZ({
       url: usePmtiles ? "pmtiles:{z}/{x}/{y}" : tiles,
       minZoom: tileset.minzoom,
@@ -100,9 +125,10 @@
       interpolate: false,
       attributions: "Population: U.S. Census Bureau, 2020 Census",
       tileLoadFunction: function (tile, src) {
+        var z = tile.getTileCoord()[0];
         var cached = rawCache.get(src);
         if (cached) {
-          tile.setImage(paint(cached, getPalette()));
+          tile.setImage(paint(cached, getPalette(), z));
           return;
         }
         var done = function (img) {
@@ -110,7 +136,7 @@
           var raw = decode(img);
           rawCache.set(src, raw);
           if (rawCache.size > RAW_CACHE_MAX) rawCache.delete(rawCache.keys().next().value);
-          tile.setImage(paint(raw, getPalette()));
+          tile.setImage(paint(raw, getPalette(), z));
         };
         if (fetchPmtiles) {
           var c = tile.getTileCoord();
@@ -120,8 +146,19 @@
         }
       },
     });
-    var extent = ol.proj.transformExtent(tileset.bounds, "EPSG:4326", "EPSG:3857");
-    return new ol.layer.Tile({ source: source, extent: extent, zIndex: 2 });
+    var layer = new ol.layer.Tile({
+      source: source,
+      extent: ol.proj.transformExtent(tileset.bounds, "EPSG:4326", "EPSG:3857"),
+      zIndex: 2,
+    });
+    // A PMTiles file knows its own coverage; use it so the map can't be
+    // limited by a data/tileset.json from a different build.
+    if (archive) {
+      archive.getHeader().then(function (h) {
+        layer.setExtent(ol.proj.transformExtent([h.minLon, h.minLat, h.maxLon, h.maxLat], "EPSG:4326", "EPSG:3857"));
+      });
+    }
+    return layer;
   }
 
   /* ---------- basemap ---------- */
@@ -248,6 +285,7 @@
   /* ---------- current outline ---------- */
 
   function readGeometry(geometry) {
+    if (!geometry) return []; // national page: no single outline
     return new ol.format.GeoJSON().readFeatures(
       { type: "Feature", geometry: geometry, properties: {} },
       { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }
@@ -276,44 +314,60 @@
 
   // Counties for every state in data/states.json, loaded per state as each
   // state comes into view. Falls back to the page's own state file.
-  function countyPicker(map, fallbackFile, getCurrent, onSelect) {
+  // Clickable places: states on the national page, counties elsewhere.
+  // Counties come from data/states.json (one file per state, loaded as each
+  // state comes into view); states from page.statesGeo.
+  function placePicker(map, getPage, onSelect) {
     var fmt = new Intl.NumberFormat("en-US");
     var hovered = null;
     var format = new ol.format.GeoJSON({ dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" });
-    var source = new ol.source.Vector();
-    var layer = new ol.layer.Vector({
-      source: source,
-      zIndex: 3,
-      style: function (feature) {
-        if (feature.get("slug") === getCurrent()) return null; // not selectable
-        return feature === hovered ? COUNTY_HOVER : COUNTY_HIT;
-      },
-    });
-    map.addLayer(layer);
+
+    function isCountry() { return getPage().kind === "country"; }
+    function pickLayer(active) {
+      var layer = new ol.layer.Vector({
+        source: new ol.source.Vector(),
+        zIndex: 3,
+        style: function (feature) {
+          if (!active() || feature.get("slug") === getPage().slug) return null; // not selectable
+          return feature === hovered ? COUNTY_HOVER : COUNTY_HIT;
+        },
+      });
+      map.addLayer(layer);
+      return layer;
+    }
+    var counties = pickLayer(function () { return !isCountry(); });
+    var statesLayer = pickLayer(isCountry);
+    function activeLayer() { return isCountry() ? statesLayer : counties; }
 
     var requested = {};
-    function loadFile(file) {
+    function loadFile(file, layer) {
       if (requested[file]) return;
       requested[file] = true;
       fetch("data/" + file)
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(function (geojson) { source.addFeatures(format.readFeatures(geojson)); })
+        .then(function (geojson) { layer.getSource().addFeatures(format.readFeatures(geojson)); })
         .catch(function () { requested[file] = false; });
     }
 
-    var states = null;
+    var manifest = null;
     function loadVisible() {
-      if (!states) return;
+      var page = getPage();
+      if (isCountry()) {
+        if (page.statesGeo) loadFile(page.statesGeo, statesLayer);
+        return;
+      }
+      if (!manifest) return;
       var view = ol.proj.transformExtent(map.getView().calculateExtent(), "EPSG:3857", "EPSG:4326");
-      states.forEach(function (st) {
-        if (ol.extent.intersects(view, st.bbox)) loadFile(st.counties);
+      manifest.forEach(function (st) {
+        if (ol.extent.intersects(view, st.bbox)) loadFile(st.counties, counties);
       });
     }
     fetch("data/states.json")
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (list) { states = list; loadVisible(); })
-      .catch(function () { if (fallbackFile) loadFile(fallbackFile); });
+      .then(function (list) { manifest = list; loadVisible(); })
+      .catch(function () { if (getPage().counties) loadFile(getPage().counties, counties); });
     map.on("moveend", loadVisible);
+    loadVisible();
 
     var tip = document.createElement("div");
     tip.className = "county-tip";
@@ -322,6 +376,7 @@
     map.addOverlay(overlay);
 
     function countyAt(pixel) {
+      var layer = activeLayer();
       return map.forEachFeatureAtPixel(pixel, function (f) { return f; }, {
         layerFilter: function (l) { return l === layer; },
       }) || null;
@@ -330,7 +385,8 @@
     function setHover(feature, coordinate) {
       if (feature !== hovered) {
         hovered = feature;
-        layer.changed();
+        counties.changed();
+        statesLayer.changed();
         map.getTargetElement().style.cursor = feature ? "pointer" : "";
         if (feature) {
           tip.innerHTML = "<strong></strong><span></span>";
@@ -358,7 +414,9 @@
     return {
       refresh: function () {
         setHover(null);
-        layer.changed();
+        counties.changed();
+        statesLayer.changed();
+        loadVisible();
       },
     };
   }
@@ -368,6 +426,7 @@
   function create(target, page, tileset, options) {
     var cfg = window.DOTMAP_CONFIG;
     var palette = cfg.groups.map(function (g) { return hexToRgb(g.color); });
+    setVividness(cfg.vividness);
     var dots = dotLayer(cfg.tiles, tileset, function () { return palette; });
     var outline = outlineLayer(page.boundary);
     var selectHandler = null;
@@ -382,8 +441,8 @@
       controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } }),
     });
 
-    var picker = countyPicker(map, page.counties,
-      function () { return page.slug; },
+    var picker = placePicker(map,
+      function () { return page; },
       function (slug) { if (selectHandler) selectHandler(slug); });
 
     function fit(duration) {
@@ -410,6 +469,11 @@
         fit(600);
       },
       onSelect: function (fn) { selectHandler = fn; },
+      // Change the vividness settings live, e.g. dotmap.setVividness({color: 2, opacity: 1.5}).
+      setVividness: function (v) {
+        setVividness(v);
+        dots.getSource().refresh();
+      },
     };
   }
 

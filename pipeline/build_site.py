@@ -3,7 +3,8 @@
 Inputs:  data/work/counts/<fips>.json, data/raw/cc-est<vintage>-alldata-<fips>.csv,
          data/raw/cb_2020_us_state_500k.zip, data/raw/cb_2020_us_county_500k.zip
 Outputs: site/data/<slug>.json, site/<slug>.html (from site/templates/county.html),
-         site/data/counties-<postal>.json, site/data/states.json, site/index.html
+         site/data/counties-<postal>.json, site/data/states.json, site/data/states-geo.json,
+         site/united-states.html and site/index.html (national map), site/places.html (list)
 """
 import io
 import json
@@ -105,6 +106,7 @@ def main():
 
     index_items = []
     manifest = []
+    states_out = []  # per state: (fips, name, slug, postal, counts, estimates, people)
     for fips, (_, state_name, postal) in STATES.items():
         counts = json.loads((WORK / "counts" / f"{fips}.json").read_text())
         estimates = read_estimates(fips)
@@ -143,7 +145,8 @@ def main():
             "census2020": counts["state"], "bbox": focus_bbox(geom), "boundary": mapping(geom),
             "counties": counties_file, "children": children,
             "estimates": state_estimates(estimates),
-        }, state_name, state_name, '<a href="index.html">All places</a>', children_html)
+            "parent": {"slug": COUNTRY_SLUG, "name": "United States"},
+        }, state_name, state_name, '<a href="./">United States</a>', children_html)
 
         # County pages
         nav = f'<a href="{state_slug}.html">{escape(state_name)}</a>'
@@ -159,6 +162,7 @@ def main():
             }, f"{county_name}, {postal}", f"{county_name}, {state_name}", nav, "")
 
         index_items.append((state_name, state_slug, state_latest, children))
+        states_out.append((fips, state_name, state_slug, postal, counts["state"], state_estimates(estimates), state_latest))
         manifest.append({
             "fips": fips, "slug": state_slug, "name": state_name, "postal": postal,
             "bbox": [round(v, 4) for v in state_geoms[fips].bounds], "counties": counties_file,
@@ -167,7 +171,58 @@ def main():
 
     # Lets the map load each state's clickable counties when it comes into view.
     (SITE / "data" / "states.json").write_text(json.dumps(manifest, separators=(",", ":")))
+    write_states_geo(states_out, state_geoms)
+    write_country(template, states_out, state_geoms)
     write_index(index_items)
+
+
+COUNTRY_SLUG = "united-states"
+NOT_CONTIGUOUS = {"02", "15"}  # Alaska, Hawaii: left out of the opening view
+
+
+def write_states_geo(states_out, state_geoms):
+    """All states as one GeoJSON file, for hover and click on the national map."""
+    features = [
+        {
+            "type": "Feature",
+            "properties": {"slug": slug, "name": name, "people": people},
+            "geometry": mapping(state_geoms[fips].simplify(0.01, preserve_topology=True)),
+        }
+        for fips, name, slug, _, _, _, people in states_out
+    ]
+    text = json.dumps({"type": "FeatureCollection", "features": features}, separators=(",", ":"))
+    text = re.sub(r"(-?\d+\.\d{3})\d+", r"\1", text)
+    (SITE / "data" / "states-geo.json").write_text(text)
+
+
+def write_country(template, states_out, state_geoms):
+    """National page, also served as the site's home page (index.html)."""
+    census = {g: sum(st[4][g] for st in states_out) for g in GROUPS}
+    est = {
+        "year": PEP_VINTAGE,
+        "base": {g: sum(st[5]["base"][g] for st in states_out) for g in GROUPS},
+        "latest": {g: sum(st[5]["latest"][g] for st in states_out) for g in GROUPS},
+    }
+    contiguous = [state_geoms[st[0]] for st in states_out if st[0] not in NOT_CONTIGUOUS] or \
+                 [state_geoms[st[0]] for st in states_out]
+    bbox = [min(g.bounds[0] for g in contiguous), min(g.bounds[1] for g in contiguous),
+            max(g.bounds[2] for g in contiguous), max(g.bounds[3] for g in contiguous)]
+    children = sorted(({"name": name, "slug": slug, "people": people}
+                       for _, name, slug, _, _, _, people in states_out), key=lambda c: c["name"])
+    children_html = (
+        '<details class="children"><summary>States (' + str(len(children)) + ")</summary><ul>" +
+        "".join(f'<li><a href="{c["slug"]}.html">{escape(c["name"])}</a> '
+                f'<span>{c["people"]:,}</span></li>' for c in children) +
+        "</ul></details>"
+    )
+    write_page(template, {
+        "slug": COUNTRY_SLUG, "kind": "country", "name": "the United States",
+        "census2020": census, "estimates": est, "bbox": bbox, "boundary": None,
+        "children": children, "statesGeo": "states-geo.json",
+    }, "United States", "the United States", '<a href="places.html">All places</a>', children_html)
+    # The national map is the home page.
+    (SITE / "index.html").write_text((SITE / f"{COUNTRY_SLUG}.html").read_text())
+    print(f"United States: wrote national page ({sum(census.values()):,} people in 2020)")
 
 
 def write_counties(filename, counties, people):
@@ -199,20 +254,21 @@ def write_index(items):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Race and Ethnicity Dot Maps</title>
+<title>All places: Race and Ethnicity Dot Maps</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/app.css">
 </head>
 <body class="index">
 <main>
 <p class="eyebrow">{EYEBROW}</p>
-<h1>Race and ethnicity dot maps</h1>
+<p class="crumbs"><a href="./">United States map</a></p>
+<h1>All places</h1>
 {''.join(sections)}
 </main>
 </body>
 </html>
 """
-    (SITE / "index.html").write_text(html)
+    (SITE / "places.html").write_text(html)
 
 
 if __name__ == "__main__":

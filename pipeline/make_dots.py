@@ -4,21 +4,24 @@ Inputs per state (data/raw):
   <prefix>2020.pl.zip              2020 Census P.L. 94-171 redistricting data
   tl_2020_<fips>_tabblock20.zip    2020 TIGER/Line census block shapes
 
+States run in parallel, one process each (see config.WORKERS).
+
 Outputs per state (data/work):
   dots/<fips>.npz     x, y (Web Mercator meters, float64), group (uint8 index into GROUPS)
   counts/<fips>.json  group totals for the state and each county
 """
+import argparse
 import io
 import json
-import sys
 import zipfile
+from multiprocessing import Pool
 
 import numpy as np
 import shapefile
 import shapely
 from shapely.geometry import shape
 
-from config import GROUPS, RAW, STATES, WORK
+from config import GROUPS, RAW, STATES, WORK, WORKERS
 
 # Field positions (0-based) in the pipe-delimited PL files.
 GEO_SUMLEV, GEO_LOGRECNO, GEO_GEOCODE, GEO_COUNTY = 2, 7, 9, 14
@@ -105,14 +108,21 @@ def sample_in_polygon(geom, n, rng):
     return np.concatenate(out_x), np.concatenate(out_y)
 
 
-def make_state(fips):
+def write_counts(fips, totals):
+    (WORK / "counts").mkdir(parents=True, exist_ok=True)
+    (WORK / "counts" / f"{fips}.json").write_text(json.dumps(totals, indent=1))
+
+
+def make_state(fips, counts_only=False):
     prefix, name, _ = STATES[fips]
     rng = np.random.default_rng(2020 + int(fips))
 
-    print(f"{name}: reading population counts…")
     blocks, totals = read_pl(prefix)
     people = sum(map(sum, blocks.values()))
-    print(f"  {len(blocks):,} populated blocks, {people:,} people")
+    if counts_only:
+        write_counts(fips, totals)
+        print(f"{name}: wrote counts ({people:,} people)", flush=True)
+        return
 
     print(f"{name}: placing dots…")
     xs, ys, gs = [], [], []
@@ -138,21 +148,33 @@ def make_state(fips):
             ys.append(by)
             gs.append(np.repeat(np.arange(len(GROUPS), dtype=np.uint8), counts))
             done += 1
-            if done % 100000 == 0:
-                print(f"  {done:,} / {len(blocks):,} blocks")
 
     x, y, g = np.concatenate(xs), np.concatenate(ys), np.concatenate(gs)
     (WORK / "dots").mkdir(parents=True, exist_ok=True)
-    (WORK / "counts").mkdir(parents=True, exist_ok=True)
     np.savez(WORK / "dots" / f"{fips}.npz", x=x, y=y, group=g)
-    (WORK / "counts" / f"{fips}.json").write_text(json.dumps(totals, indent=1))
+    write_counts(fips, totals)
     assert len(x) == people, (len(x), people)
-    print(f"{name}: wrote {len(x):,} dots from {done:,} blocks")
+    print(f"{name}: wrote {len(x):,} dots from {done:,} blocks", flush=True)
 
 
 def main():
-    for fips in sys.argv[1:] or STATES:
-        make_state(fips)
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("fips", nargs="*", help="state FIPS codes (default: all in config)")
+    parser.add_argument("--counts-only", action="store_true",
+                        help="only write group totals (no block shapes needed); enough to build pages")
+    args = parser.parse_args()
+    states = args.fips or list(STATES)
+    # Biggest states first so the slowest ones don't start last.
+    states.sort(key=lambda f: -(RAW / f"{STATES[f][0]}2020.pl.zip").stat().st_size)
+    # Each state runs in its own short-lived process (maxtasksperchild=1), so
+    # memory is returned after every state instead of accumulating.
+    with Pool(min(WORKERS, len(states)), maxtasksperchild=1) as pool:
+        for _ in pool.imap_unordered(_run, [(f, args.counts_only) for f in states]):
+            pass
+
+
+def _run(job):
+    make_state(*job)
 
 
 if __name__ == "__main__":

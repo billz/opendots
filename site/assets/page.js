@@ -7,6 +7,14 @@
   var cfg = window.DOTMAP_CONFIG;
   var STORAGE_KEY = "dotmap-colors";
   var slug = document.body.dataset.slug;
+  var HOME_SLUG = "united-states"; // the national map is served at the site root
+
+  function pageUrl(s) { return s === HOME_SLUG ? "./" : s + ".html"; }
+
+  function slugFromPath() {
+    var file = location.pathname.split("/").pop().replace(/\.html$/, "");
+    return !file || file === "index" ? HOME_SLUG : file;
+  }
   var fmt = new Intl.NumberFormat("en-US");
   var pct = function (x) { return (x * 100).toFixed(1) + "%"; };
 
@@ -179,9 +187,13 @@
         " in July " + est.year +
         (Math.abs(change) < 0.5 ? ", about the same as in 2020. " :
           ", " + (change > 0 ? "up " : "down ") + Math.abs(change).toFixed(1) + "% from 2020. ") + groups;
-      // Fastest-growing group, ignoring groups too small for a meaningful percentage.
+      // Fastest-growing group, among groups big enough for the percentage to
+      // mean something: at least 1% of the population and 1,000 people.
+      var baseTotal = sumOf(est.base);
       var growth = cfg.groups
-        .filter(function (g) { return est.base[g.id] >= MIN_BASE_FOR_PERCENT * 10; })
+        .filter(function (g) {
+          return est.base[g.id] >= MIN_BASE_FOR_PERCENT * 10 && est.base[g.id] / baseTotal >= 0.01;
+        })
         .map(function (g) { return { g: g, change: (est.latest[g.id] - est.base[g.id]) / est.base[g.id] * 100 }; })
         .sort(function (a, b) { return b.change - a.change; });
       if (growth.length && growth[0].change >= 0.5) {
@@ -252,8 +264,8 @@
     var nav = document.getElementById("crumbs");
     nav.innerHTML = "";
     nav.appendChild(page.parent
-      ? link(page.parent.slug + ".html", page.parent.name)
-      : link("index.html", "All places"));
+      ? link(pageUrl(page.parent.slug), page.parent.name)
+      : link("places.html", "All places"));
   }
 
   function renderChildren(page) {
@@ -263,7 +275,7 @@
     var details = document.createElement("details");
     details.className = "children";
     var summary = document.createElement("summary");
-    summary.textContent = "Counties (" + page.children.length + ")";
+    summary.textContent = (page.kind === "country" ? "States (" : "Counties (") + page.children.length + ")";
     var ul = document.createElement("ul");
     page.children.forEach(function (c) {
       var li = document.createElement("li");
@@ -328,9 +340,9 @@
     loadPage(s)
       .then(function (page) {
         showPage(page);
-        if (push) history.pushState({ slug: s }, "", s + ".html");
+        if (push) history.pushState({ slug: s }, "", pageUrl(s));
       })
-      .catch(function () { location.href = s + ".html"; });
+      .catch(function () { location.href = pageUrl(s); });
   }
 
   function start() {
@@ -354,7 +366,7 @@
         dotmap.onSelect(function (s) { goTo(s, true); });
         history.replaceState({ slug: slug }, "", location.href);
         window.addEventListener("popstate", function (e) {
-          var s = (e.state && e.state.slug) || location.pathname.split("/").pop().replace(/\.html$/, "");
+          var s = (e.state && e.state.slug) || slugFromPath();
           if (s) goTo(s, false);
         });
       })
