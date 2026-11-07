@@ -3,6 +3,15 @@
 #
 # One-time setup: repo Settings -> Pages -> Build and deployment -> Source:
 # "GitHub Actions".
+#
+# Tiles on Cloudflare R2 (needed once the site outgrows GitHub Pages' 1 GB):
+# in repo Settings -> Secrets and variables -> Actions, add
+#   secrets:   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY  (R2 API token, Object Read & Write)
+#   variables: R2_ENDPOINT  https://<account-id>.r2.cloudflarestorage.com
+#              R2_BUCKET    opendotmap
+#              TILES_URL    public URL of tiles.pmtiles, e.g. https://pub-<id>.r2.dev/tiles.pmtiles
+# With TILES_URL set, builds upload tiles.pmtiles to R2 and publish only the
+# pages to GitHub Pages.
 name: Build and publish site
 
 on:
@@ -14,8 +23,8 @@ on:
       tiles:
         description: "Tile format to publish"
         type: choice
-        options: [pmtiles, folder]
-        default: pmtiles
+        options: [auto, r2, pmtiles, folder]
+        default: auto
 
 permissions:
   contents: read
@@ -28,10 +37,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # pmtiles: one ~128 MB file, needs HTTP range requests (GitHub Pages supports
-  # them). folder: ~24k small PNGs, works on any host. Push builds use pmtiles;
-  # run the workflow manually to pick folder instead.
-  TILES: ${{ inputs.tiles || 'pmtiles' }}
+  # r2: upload tiles.pmtiles to Cloudflare R2 and publish only the pages.
+  # pmtiles: publish the single file on GitHub Pages (needs range requests).
+  # folder: publish the PNG folder on GitHub Pages (works on any host).
+  # auto (push builds): r2 when the TILES_URL variable is set, else pmtiles.
+  TILES: ${{ (inputs.tiles && inputs.tiles != 'auto') && inputs.tiles || (vars.TILES_URL && 'r2' || 'pmtiles') }}
 
 jobs:
   build:
@@ -46,7 +56,7 @@ jobs:
           cache: pip
           cache-dependency-path: pipeline/requirements.txt
 
-      # Census files (~470 MB for California) rarely change; cache them so
+      # Census files (~1.3 GB for the four western states) rarely change; cache them so
       # each build doesn't download them again.
       - name: Cache Census downloads
         uses: actions/cache@v4
@@ -69,9 +79,28 @@ jobs:
       - name: Build pages
         run: make site
 
-      - name: Choose tile format
+      - name: Upload tiles to R2
+        if: env.TILES == 'r2'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
         run: |
-          if [ "$TILES" = "pmtiles" ]; then
+          aws s3 cp site/tiles.pmtiles "s3://${{ vars.R2_BUCKET }}/tiles.pmtiles" \
+            --endpoint-url "${{ vars.R2_ENDPOINT }}" \
+            --content-type application/octet-stream --only-show-errors
+
+      - name: Choose tile format
+        env:
+          TILES_URL: ${{ vars.TILES_URL }}
+        run: |
+          if [ "$TILES" = "r2" ]; then
+            # The commit id in the URL makes browsers fetch the new file after each upload.
+            url="$TILES_URL?v=${GITHUB_SHA::7}"
+            sed -i "s|^  tiles: \"tiles/{z}/{x}/{y}.png\",|  tiles: \"$url\",|" site/assets/config.js
+            grep -qF "  tiles: \"$url\"," site/assets/config.js
+            rm -rf site/tiles site/tiles.pmtiles
+          elif [ "$TILES" = "pmtiles" ]; then
             sed -i 's|^  tiles: "tiles/{z}/{x}/{y}.png",|  tiles: "tiles.pmtiles",|' site/assets/config.js
             grep -q '^  tiles: "tiles.pmtiles",' site/assets/config.js
             rm -rf site/tiles

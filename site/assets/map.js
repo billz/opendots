@@ -91,7 +91,7 @@
   }
 
   function dotLayer(tiles, tileset, getPalette) {
-    var usePmtiles = /\.pmtiles$/.test(tiles);
+    var usePmtiles = /\.pmtiles(\?|$)/.test(tiles);
     var fetchPmtiles = usePmtiles ? pmtilesLoader(tiles) : null;
     var source = new ol.source.XYZ({
       url: usePmtiles ? "pmtiles:{z}/{x}/{y}" : tiles,
@@ -274,13 +274,13 @@
     stroke: new ol.style.Stroke({ color: "rgba(49,46,129,0.75)", width: 1.5 }),
   });
 
-  function countyPicker(map, url, getCurrent, onSelect) {
+  // Counties for every state in data/states.json, loaded per state as each
+  // state comes into view. Falls back to the page's own state file.
+  function countyPicker(map, fallbackFile, getCurrent, onSelect) {
     var fmt = new Intl.NumberFormat("en-US");
     var hovered = null;
-    var source = new ol.source.Vector({
-      url: url,
-      format: new ol.format.GeoJSON({ dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }),
-    });
+    var format = new ol.format.GeoJSON({ dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" });
+    var source = new ol.source.Vector();
     var layer = new ol.layer.Vector({
       source: source,
       zIndex: 3,
@@ -290,6 +290,30 @@
       },
     });
     map.addLayer(layer);
+
+    var requested = {};
+    function loadFile(file) {
+      if (requested[file]) return;
+      requested[file] = true;
+      fetch("data/" + file)
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (geojson) { source.addFeatures(format.readFeatures(geojson)); })
+        .catch(function () { requested[file] = false; });
+    }
+
+    var states = null;
+    function loadVisible() {
+      if (!states) return;
+      var view = ol.proj.transformExtent(map.getView().calculateExtent(), "EPSG:3857", "EPSG:4326");
+      states.forEach(function (st) {
+        if (ol.extent.intersects(view, st.bbox)) loadFile(st.counties);
+      });
+    }
+    fetch("data/states.json")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (list) { states = list; loadVisible(); })
+      .catch(function () { if (fallbackFile) loadFile(fallbackFile); });
+    map.on("moveend", loadVisible);
 
     var tip = document.createElement("div");
     tip.className = "county-tip";
@@ -358,11 +382,9 @@
       controls: ol.control.defaults.defaults({ attributionOptions: { collapsible: true } }),
     });
 
-    var picker = page.counties
-      ? countyPicker(map, "data/" + page.counties,
-          function () { return page.slug; },
-          function (slug) { if (selectHandler) selectHandler(slug); })
-      : null;
+    var picker = countyPicker(map, page.counties,
+      function () { return page.slug; },
+      function (slug) { if (selectHandler) selectHandler(slug); });
 
     function fit(duration) {
       var extent = ol.proj.transformExtent(page.bbox, "EPSG:4326", "EPSG:3857");
@@ -384,7 +406,7 @@
         var src = outline.getSource();
         src.clear();
         src.addFeatures(readGeometry(page.boundary));
-        if (picker) picker.refresh();
+        picker.refresh();
         fit(600);
       },
       onSelect: function (fn) { selectHandler = fn; },
